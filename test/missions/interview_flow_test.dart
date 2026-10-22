@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solo_leveling/src/core/db/app_database.dart';
 import 'package:solo_leveling/src/core/providers/core_providers.dart';
+import 'package:solo_leveling/src/features/missions/data/mission_repository.dart';
 import 'package:solo_leveling/src/features/missions/domain/interview_catalog.dart';
 import 'package:solo_leveling/src/features/missions/presentation/providers/interview_provider.dart';
 import 'package:solo_leveling/src/features/missions/presentation/providers/missions_provider.dart';
@@ -124,25 +125,74 @@ void main() {
       );
     });
 
-    test('saltar deja el stack de ejemplo', () async {
-      await container
-          .read(missionRepositoryProvider)
-          .applyStack(
-            goal: DailyGoal.fisico,
-            answers: const {},
-            day: DateTime.now(),
-            level: 1,
-            source: 'default',
-          );
+    test(
+      'saltar deja la rutina de ejemplo y cuenta como configurado',
+      () async {
+        await container
+            .read(missionRepositoryProvider)
+            .applyStack(
+              goal: DailyGoal.fisico,
+              answers: const {},
+              day: DateTime.now(),
+              level: 1,
+              source: PreferenceSource.skipped,
+            );
 
-      final preference = await container
-          .read(missionRepositoryProvider)
-          .userPreference();
+        final preference = await container
+            .read(missionRepositoryProvider)
+            .userPreference();
+        final state = await container.read(userPreferencesProvider.future);
+
+        expect(preference!.source, PreferenceSource.skipped);
+        expect(state.configured, isTrue);
+        expect(state.goal, DailyGoal.fisico);
+      },
+    );
+
+    test('la siembra automática no cuenta como entrevista hecha', () async {
+      await container.read(missionRepositoryProvider).ensureStackSeeded();
+
       final state = await container.read(userPreferencesProvider.future);
 
-      expect(preference!.source, 'default');
       expect(state.configured, isFalse);
-      expect(state.goal, DailyGoal.fisico);
     });
+
+    test(
+      'cambiar de stack conserva lo cumplido que sigue en la rutina',
+      () async {
+        final repository = container.read(missionRepositoryProvider);
+        final today = DateTime.now();
+        await repository.applyStack(
+          goal: DailyGoal.fisico,
+          answers: const {'training': 'strength'},
+          day: today,
+          level: 1,
+        );
+        final before = await repository.dailyMissionsOn(today);
+        final water = before.firstWhere((m) => m.title.startsWith('Toma'));
+        final exercise = before.first;
+        await repository.registerProgress(water.id, amount: water.target);
+        for (final s in await repository.subtasksOf(exercise.id)) {
+          await repository.registerSubtaskProgress(s.id, amount: s.target);
+        }
+
+        final outcome = await repository.applyStack(
+          goal: DailyGoal.fisico,
+          answers: const {'training': 'cardio'},
+          day: today,
+          level: 1,
+        );
+
+        final after = await repository.dailyMissionsOn(today);
+        final completions = await repository.watchCompletionsOn(today).first;
+        final keptWater = after.firstWhere((m) => m.title == water.title);
+        expect(after.first.title, 'Haz cardio');
+        expect(outcome.completionsRemoved, 1);
+        expect(outcome.xpRefunded, exercise.xpReward);
+        expect(completions.map((c) => c.missionId), [keptWater.id]);
+        expect(keptWater.progress, keptWater.target);
+        expect(await repository.penaltyForDay(today), isNot(dailyStackXp));
+      },
+    );
   });
 }

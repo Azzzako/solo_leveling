@@ -8,9 +8,7 @@ import '../features/missions/presentation/providers/interview_provider.dart';
 import '../features/missions/presentation/screens/interview_screen.dart';
 import 'shell/app_shell.dart';
 
-const interviewPath = '/entrevista';
-
-final loginPath = '/login';
+const loginPath = '/login';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = _RouterRefresh();
@@ -27,7 +25,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final signedIn = auth.value != null;
       final location = state.matchedLocation;
       final onLogin = location == loginPath;
-      final onInterview = location == interviewPath;
+      final onInterview = location == AppRoutes.interview;
 
       if (loading) return onLogin || onInterview ? null : loginPath;
       if (!signedIn) return onLogin ? null : loginPath;
@@ -35,7 +33,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final interview = ref.read(userPreferencesProvider);
       final needsInterview = interview.value?.configured == false;
-      if (needsInterview && !onInterview) return interviewPath;
+      if (needsInterview && !onInterview) return AppRoutes.interview;
       if (!needsInterview && onInterview) return AppRoutes.dashboard;
       return null;
     },
@@ -45,11 +43,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: interviewPath,
+        path: AppRoutes.interview,
         builder: (context, state) => const InterviewScreen(reconfigure: false),
       ),
       GoRoute(
-        path: '$interviewPath/reconfigurar',
+        path: AppRoutes.reconfigure,
         builder: (context, state) => const InterviewScreen(reconfigure: true),
       ),
       StatefulShellRoute.indexedStack(

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/system_widgets.dart';
 import '../../domain/player_stats.dart';
 
@@ -12,11 +13,13 @@ class PlayerStatusPanel extends StatelessWidget {
     required this.todayCompleted,
     required this.todayTotal,
     super.key,
+    this.onRename,
   });
 
   final PlayerStats stats;
   final int todayCompleted;
   final int todayTotal;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,7 @@ class PlayerStatusPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              SystemLabel('STATUS', color: rank.color),
+              SystemLabel('ESTADO', color: rank.color),
               const Spacer(),
               SystemLabel('RANGO ${rank.label}', color: rank.color),
             ],
@@ -57,26 +60,38 @@ class PlayerStatusPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      stats.name.toUpperCase(),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: 'Orbitron',
-                        letterSpacing: 1.4,
-                        color: AppColors.textPrimary,
+                    InkWell(
+                      onTap: onRename,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              stats.name.toUpperCase(),
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.panelTitle,
+                            ),
+                          ),
+                          if (onRename != null) ...[
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: AppColors.textMuted,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    Text(
-                      rank.title,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    Text(rank.title, style: AppTypography.caption),
                     const SizedBox(height: 10),
                     XpBar(progress: stats.levelProgress),
                     const SizedBox(height: 6),
                     Text(
                       stats.inDebt
-                          ? 'DEUDA ${stats.totalXp.abs()} XP'
-                          : '${stats.xpIntoLevel} / ${stats.xpNeededForNext} XP',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          ? 'DEUDA ${formatNumber(stats.totalXp.abs())} XP'
+                          : '${formatNumber(stats.xpIntoLevel)} / '
+                                '${formatNumber(stats.xpNeededForNext)} XP',
+                      style: AppTypography.caption.copyWith(
                         color: stats.inDebt ? AppColors.danger : null,
                         fontWeight: stats.inDebt ? FontWeight.w700 : null,
                       ),
@@ -87,20 +102,20 @@ class PlayerStatusPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _MiniStat(
                 icon: stats.inDebt ? Icons.trending_down : Icons.bolt,
-                label: '${stats.totalXp} XP',
+                label: '${formatNumber(stats.totalXp)} XP',
                 color: stats.inDebt ? AppColors.danger : AppColors.systemGlow,
               ),
-              const SizedBox(width: 8),
               _MiniStat(
                 icon: Icons.local_fire_department,
-                label: '${stats.streak} días',
+                label: pluralize(stats.streak, 'día', 'días'),
                 color: AppColors.gold,
               ),
-              const SizedBox(width: 8),
               _MiniStat(
                 icon: Icons.check_circle,
                 label: '$todayCompleted/$todayTotal',
@@ -138,7 +153,7 @@ class _MiniStat extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontSize: 12, color: color)),
+        Text(label, style: AppTypography.caption.copyWith(color: color)),
       ],
     ),
   );

@@ -165,4 +165,34 @@ void main() {
       expect(store.dailyMissionsSeedDate, day);
     });
   });
+
+  group('última misión cumplida', () {
+    test('guardar null la borra en vez de dejar 1970', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = await SettingsStore.open('u1');
+      await store.writeStats(
+        PlayerStats(
+          name: 'A',
+          totalXp: 10,
+          streak: 1,
+          lastCompletion: DateTime(2026, 10, 22, 8),
+        ),
+      );
+      expect(store.readStats().lastCompletion, DateTime(2026, 10, 22, 8));
+
+      await store.writeStats(PlayerStats(name: 'A', totalXp: 10, streak: 0));
+
+      expect(store.readStats().lastCompletion, isNull);
+    });
+
+    test('un 0 heredado se lee como sin fecha', () async {
+      SharedPreferences.setMockInitialValues({
+        'sl_legacy_claimed': true,
+        'sl_u1::hunter_last_completion': 0,
+      });
+      final store = await SettingsStore.open('u1');
+
+      expect(store.readStats().lastCompletion, isNull);
+    });
+  });
 }

@@ -1,12 +1,20 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/db/app_database.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/system_widgets.dart';
 
-const subtaskStep = 10;
+const _actionSlot = 40.0;
+const _actionGap = 8.0;
+const _barGap = 10.0;
+const _maxSubtaskTitleWidth = 140.0;
+const _titleReference = 'Espalda y cadera';
+const _counterReference = '00/00';
 
 class MissionCard extends StatelessWidget {
   const MissionCard({
@@ -34,9 +42,23 @@ class MissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = mission.difficulty.color;
-    final progress = mission.target == 0
+    final progress = completed
+        ? 1.0
+        : mission.target == 0
         ? 1.0
         : (mission.progress / mission.target).clamp(0.0, 1.0);
+    final counterWidth = _widest(context, AppTypography.counter, [
+      _counterReference,
+      for (final subtask in subtasks) _counterSample(subtask.target),
+    ]);
+    final titleWidth = math.min(
+      _widest(context, AppTypography.body, [
+        _titleReference,
+        for (final subtask in subtasks) subtask.title,
+      ]),
+      _maxSubtaskTitleWidth,
+    );
+
     return SystemPanel(
       borderColor: completed ? color.withValues(alpha: 0.5) : null,
       padding: EdgeInsets.zero,
@@ -61,16 +83,34 @@ class MissionCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          mission.title,
-                          style: AppTypography.bodyStrong.copyWith(
-                            decoration: completed
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: completed
-                                ? AppColors.textSecondary
-                                : AppColors.textPrimary,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                mission.title,
+                                style: AppTypography.bodyStrong.copyWith(
+                                  decoration: completed
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: completed
+                                      ? AppColors.textSecondary
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '+${formatNumber(mission.xpReward)} XP',
+                                style: AppTypography.caption.copyWith(
+                                  color: color,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         if (mission.description.isNotEmpty) ...[
                           const SizedBox(height: 2),
@@ -80,38 +120,35 @@ class MissionCard extends StatelessWidget {
                           ),
                         ],
                         const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: XpBar(progress: progress, height: 6),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              '${mission.progress}/${mission.target}',
-                              style: AppTypography.caption,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              '+${mission.xpReward} XP',
-                              style: AppTypography.caption.copyWith(
-                                color: color,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
+                        if (hasSubtasks)
+                          Text(
+                            'Avance ${_counter(mission.progress, mission.target)}',
+                            style: AppTypography.counter,
+                          )
+                        else
+                          _BarRow(
+                            progress: progress,
+                            height: 6,
+                            counter: _counter(completed ? 1 : 0, 1),
+                            counterWidth: counterWidth,
+                          ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  if (completed && onUndo != null)
-                    _UndoButton(tooltip: 'Deshacer', onPressed: onUndo!)
-                  else
-                    Icon(
-                      completed ? Icons.verified : Icons.radio_button_unchecked,
-                      color: completed ? color : AppColors.textMuted,
-                      size: 22,
-                    ),
+                  const SizedBox(width: _actionGap),
+                  SizedBox(
+                    width: _actionSlot,
+                    height: 32,
+                    child: completed && onUndo != null
+                        ? _UndoButton(tooltip: 'Deshacer', onPressed: onUndo!)
+                        : Icon(
+                            completed
+                                ? Icons.verified
+                                : Icons.radio_button_unchecked,
+                            color: completed ? color : AppColors.textMuted,
+                            size: 22,
+                          ),
+                  ),
                 ],
               ),
               if (hasSubtasks) ...[
@@ -122,6 +159,8 @@ class MissionCard extends StatelessWidget {
                   (s) => _SubtaskRow(
                     subtask: s,
                     color: color,
+                    titleWidth: titleWidth,
+                    counterWidth: counterWidth,
                     onTap: () => onSubtaskComplete?.call(s),
                     onStep: () => onSubtaskStep?.call(s),
                     onUndo: onSubtaskUndo == null
@@ -138,10 +177,68 @@ class MissionCard extends StatelessWidget {
   }
 }
 
+String _counter(int progress, int target) =>
+    '${formatNumber(progress)}/${formatNumber(target)}';
+
+String _counterSample(int target) => _counter(target, target);
+
+double _widest(BuildContext context, TextStyle style, List<String> texts) =>
+    texts.map((text) => _measure(context, text, style)).fold(0.0, math.max);
+
+double _measure(BuildContext context, String text, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: DefaultTextStyle.of(context).style.merge(style),
+    ),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final width = painter.width.ceilToDouble();
+  painter.dispose();
+  return width;
+}
+
+class _BarRow extends StatelessWidget {
+  const _BarRow({
+    required this.progress,
+    required this.height,
+    required this.counter,
+    required this.counterWidth,
+  });
+
+  final double progress;
+  final double height;
+  final String counter;
+  final double counterWidth;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: XpBar(progress: progress, height: height),
+      ),
+      const SizedBox(width: _barGap),
+      SizedBox(
+        width: counterWidth,
+        child: Text(
+          counter,
+          maxLines: 1,
+          textAlign: TextAlign.right,
+          style: AppTypography.counter,
+        ),
+      ),
+    ],
+  );
+}
+
 class _SubtaskRow extends StatelessWidget {
   const _SubtaskRow({
     required this.subtask,
     required this.color,
+    required this.titleWidth,
+    required this.counterWidth,
     this.onTap,
     this.onStep,
     this.onUndo,
@@ -149,6 +246,8 @@ class _SubtaskRow extends StatelessWidget {
 
   final MissionSubtask subtask;
   final Color color;
+  final double titleWidth;
+  final double counterWidth;
   final VoidCallback? onTap;
   final VoidCallback? onStep;
   final VoidCallback? onUndo;
@@ -162,7 +261,7 @@ class _SubtaskRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
             Icon(
@@ -171,37 +270,44 @@ class _SubtaskRow extends StatelessWidget {
               color: done ? color : AppColors.textMuted,
             ),
             const SizedBox(width: 10),
-            Text(
-              subtask.title,
-              style: AppTypography.body.copyWith(
-                color: done ? AppColors.textSecondary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: XpBar(progress: progress, height: 4)),
-            const SizedBox(width: 10),
-            Text(
-              '${subtask.progress}/${subtask.target}',
-              style: AppTypography.caption,
-            ),
-            if (done)
-              _UndoButton(
-                tooltip: 'Deshacer',
-                onPressed: onUndo ?? () {},
-                enabled: onUndo != null,
-                size: 32,
-              )
-            else
-              SizedBox(
-                width: 40,
-                height: 32,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.add, size: 18, color: color),
-                  onPressed: onStep,
+            SizedBox(
+              width: titleWidth,
+              child: Text(
+                subtask.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body.copyWith(
+                  color: done ? AppColors.textSecondary : AppColors.textPrimary,
                 ),
               ),
+            ),
+            const SizedBox(width: _barGap),
+            Expanded(
+              child: _BarRow(
+                progress: progress,
+                height: 4,
+                counter: _counter(subtask.progress, subtask.target),
+                counterWidth: counterWidth,
+              ),
+            ),
+            const SizedBox(width: _actionGap),
+            SizedBox(
+              width: _actionSlot,
+              height: 40,
+              child: done
+                  ? _UndoButton(
+                      tooltip: 'Deshacer',
+                      onPressed: onUndo ?? () {},
+                      enabled: onUndo != null,
+                    )
+                  : IconButton(
+                      tooltip: 'Sumar',
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.add, size: 18, color: color),
+                      onPressed: onStep,
+                    ),
+            ),
           ],
         ),
       ),
@@ -214,31 +320,23 @@ class _UndoButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.enabled = true,
-    this.size = 40,
   });
 
   final String tooltip;
   final VoidCallback onPressed;
   final bool enabled;
-  final int size;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: SizedBox(
-      width: size.toDouble(),
-      height: 32,
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        icon: Icon(
-          Icons.undo,
-          size: 18,
-          color: enabled ? AppColors.textSecondary : AppColors.textMuted,
-        ),
-        onPressed: enabled ? onPressed : null,
-      ),
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    padding: EdgeInsets.zero,
+    visualDensity: VisualDensity.compact,
+    icon: Icon(
+      Icons.undo,
+      size: 18,
+      color: enabled ? AppColors.textSecondary : AppColors.textMuted,
     ),
+    onPressed: enabled ? onPressed : null,
   );
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solo_leveling/src/features/missions/domain/interview_catalog.dart';
+import 'package:solo_leveling/src/features/missions/domain/mission_difficulty.dart';
 
 void main() {
   group('catálogo', () {
@@ -49,8 +50,8 @@ void main() {
       final stack = buildStack(DailyGoal.fisico, const {});
 
       expect(stack, hasLength(7));
-      expect(stack.first.title, 'Hacer ejercicio');
-      expect(stack.last.title, 'Bebe 2 litros de agua');
+      expect(stack.first.title, 'Haz ejercicio');
+      expect(stack.last.title, 'Toma 2 litros de agua');
     });
 
     test('respeta las respuestas elegidas', () {
@@ -63,9 +64,9 @@ void main() {
       expect(
         stack.map((d) => d.title),
         containsAll(<String>[
-          'Hacer cardio',
-          'Camina 15000 pasos',
-          'Juega con las mascotas',
+          'Haz cardio',
+          'Camina 15,000 pasos',
+          'Juega con tus mascotas',
         ]),
       );
     });
@@ -113,12 +114,48 @@ void main() {
         'intensity': 'hard',
       });
 
-      expect(
-        soft.first.subtasks.first.base,
-        lessThan(hard.first.subtasks.first.base),
-      );
+      expect(soft.first.subtasks.map((s) => s.base), everyElement(30));
+      expect(hard.first.subtasks.map((s) => s.base), everyElement(30));
+      expect(soft.first.subtasks.map((s) => s.perLevel), everyElement(1));
+      expect(hard.first.subtasks.map((s) => s.perLevel), everyElement(3));
       expect(soft.first.title, hard.first.title);
       expect(soft, hasLength(7));
+    });
+
+    test('la intensidad sigue ajustando los minutos de cardio', () {
+      final soft = buildStack(DailyGoal.fisico, const {
+        'training': 'cardio',
+        'intensity': 'soft',
+      });
+      final hard = buildStack(DailyGoal.fisico, const {
+        'training': 'cardio',
+        'intensity': 'hard',
+      });
+
+      expect(
+        soft.first.subtasks[1].base,
+        lessThan(hard.first.subtasks[1].base),
+      );
+    });
+
+    test('todas las series de fuerza arrancan en 30 en cualquier meta', () {
+      for (final goal in DailyGoal.values) {
+        for (final answers in _combinations(goal)) {
+          for (final draft in buildStack(goal, answers)) {
+            if (draft.kind != 'fuerza') continue;
+            expect(draft.subtasks, hasLength(4));
+            expect(
+              draft.subtasks.map((s) => s.targetAt(1)),
+              everyElement(30),
+              reason: '$goal $answers',
+            );
+            expect(
+              draft.subtasks.map((s) => s.perLevel),
+              everyElement(greaterThanOrEqualTo(1)),
+            );
+          }
+        }
+      }
     });
 
     test('el ajuste de foco cambia los minutos del bloque', () {
@@ -149,11 +186,19 @@ void main() {
       }).first;
 
       expect(exercise.subtasks, hasLength(4));
-      expect(exercise.subtasks.first.targetAt(1), 50);
-      expect(exercise.subtasks.first.targetAt(10), 68);
-      expect(exercise.subtasks.first.targetAt(30), 108);
-      expect(exercise.subtasks.last.targetAt(1), 10);
-      expect(exercise.subtasks.last.targetAt(10), 19);
+      expect(exercise.subtasks.map((s) => s.title), [
+        'Lagartijas',
+        'Abdominales',
+        'Sentadillas',
+        'Dominadas',
+      ]);
+      for (final series in exercise.subtasks) {
+        expect(series.targetAt(1), 30);
+        expect(series.targetAt(2), 32);
+        expect(series.targetAt(10), 48);
+        expect(series.targetAt(30), 88);
+        expect(series.targetAt(99), 88);
+      }
     });
 
     test('las misiones sin series no escalan con el nivel', () {
@@ -163,12 +208,119 @@ void main() {
       expect(water.target, 2);
     });
 
+    test('nunca repite el mismo tipo de misión', () {
+      for (final goal in DailyGoal.values) {
+        for (final answers in _combinations(goal)) {
+          final kinds = buildStack(goal, answers).map((d) => d.kind).toList();
+          expect(kinds.toSet().length, 7, reason: '$goal $answers: $kinds');
+        }
+      }
+    });
+
+    test('ningún texto deja el marcador {n} sin resolver', () {
+      for (final goal in DailyGoal.values) {
+        for (final answers in _combinations(goal)) {
+          for (final draft in buildStack(goal, answers)) {
+            expect(draft.title, isNot(contains('{n}')));
+            expect(draft.description, isNot(contains('{n}')));
+          }
+        }
+      }
+    });
+
+    test('el título refleja el ajuste de minutos', () {
+      final focus = buildStack(DailyGoal.enfoque, const {
+        'technique': 'meditate',
+        'minutes': 'twenty',
+      });
+      final work = buildStack(DailyGoal.productividad, const {
+        'anchor': 'code',
+        'blocks': 'long',
+      });
+      final people = buildStack(DailyGoal.relaciones, const {
+        'who': 'partner',
+        'quality': 'thirty',
+      });
+
+      expect(focus.first.title, 'Medita 20 minutos');
+      expect(focus.first.target, 20);
+      expect(work.first.title, 'Programa 60 minutos');
+      expect(people.first.description, startsWith('30 minutos con tu pareja'));
+    });
+
+    test('elegir agua como energía no duplica la hidratación', () {
+      final stack = buildStack(DailyGoal.productividad, const {
+        'energy': 'water',
+      });
+
+      expect(stack.where((d) => d.kind == 'agua'), hasLength(1));
+      expect(stack, hasLength(7));
+    });
+
+    test('sin palabras de España en los textos', () {
+      final banned = RegExp(
+        r'móvil|tentempié|auricular|quedar|queda con|montar|vale|ordenador',
+        caseSensitive: false,
+      );
+      for (final interview in interviews) {
+        for (final question in interview.questions) {
+          expect(question.prompt, isNot(matches(banned)));
+          expect(question.hint, isNot(matches(banned)));
+          for (final option in question.options) {
+            expect(option.label, isNot(matches(banned)));
+            final draft = option.draft;
+            if (draft == null) continue;
+            expect(draft.title, isNot(matches(banned)));
+            expect(draft.description, isNot(matches(banned)));
+          }
+        }
+      }
+    });
+
     test('el stack por defecto es el de físico', () {
       final stack = defaultStack();
 
       expect(stack, hasLength(7));
-      expect(stack.map((d) => d.title), contains('Hacer ejercicio'));
-      expect(stack.map((d) => d.title), contains('Comer sano'));
+      expect(stack.map((d) => d.title), contains('Haz ejercicio'));
+      expect(stack.map((d) => d.title), contains('Come sano'));
+    });
+  });
+
+  group('normalizeXp', () {
+    MissionDraft draft(int xp) => MissionDraft(
+      kind: 'k$xp',
+      title: 't$xp',
+      description: 'd',
+      difficulty: MissionDifficulty.easy,
+      xpReward: xp,
+    );
+
+    test('reparte exactamente el total aunque los pesos sean raros', () {
+      final cases = <List<int>>[
+        [1, 1000, 1000],
+        [33, 33, 33, 1],
+        [100, 80, 90, 60, 35, 50, 40],
+        [7, 7, 7, 7, 7, 7, 7],
+      ];
+      for (final weights in cases) {
+        final shares = normalizeXp([
+          for (final w in weights) draft(w),
+        ], dailyStackXp).map((d) => d.xpReward).toList();
+        expect(
+          shares.fold<int>(0, (a, b) => a + b),
+          dailyStackXp,
+          reason: '$weights',
+        );
+        expect(shares.every((x) => x >= 20), isTrue, reason: '$shares');
+      }
+    });
+
+    test('respeta la proporción de los pesos', () {
+      final shares = normalizeXp([
+        draft(100),
+        draft(50),
+      ], 300).map((d) => d.xpReward).toList();
+      expect(shares, [200, 100]);
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
@@ -7,15 +8,34 @@ import '../../../../core/widgets/system_widgets.dart';
 import '../../domain/interview_catalog.dart';
 import '../providers/interview_provider.dart';
 
-class InterviewScreen extends ConsumerWidget {
+class InterviewScreen extends ConsumerStatefulWidget {
   const InterviewScreen({required this.reconfigure, super.key});
 
   final bool reconfigure;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InterviewScreen> createState() => _InterviewScreenState();
+}
+
+class _InterviewScreenState extends ConsumerState<InterviewScreen> {
+  bool _saving = false;
+
+  Future<void> _save(Future<void> Function() action) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await action();
+      if (mounted && widget.reconfigure && context.canPop()) context.pop();
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(interviewControllerProvider);
     final controller = ref.read(interviewControllerProvider.notifier);
+    final reconfigure = widget.reconfigure;
 
     return Scaffold(
       body: SafeArea(
@@ -28,9 +48,7 @@ class InterviewScreen extends ConsumerWidget {
               onBack: state.step == 0 && state.goal == null
                   ? null
                   : controller.back,
-              onClose: reconfigure
-                  ? () => Navigator.of(context).maybePop()
-                  : null,
+              onClose: reconfigure ? () => context.pop() : null,
             ),
             Expanded(
               child: state.isChoosingGoal
@@ -41,32 +59,33 @@ class InterviewScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
               child: Column(
                 children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed:
-                          state.currentQuestion == null ||
-                              state.answerFor(state.currentQuestion!.id) == null
-                          ? null
-                          : () => controller.finish(),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.systemBlue,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Text(
-                        'GUARDAR Y EMPEZAR',
-                        style: AppTypography.panelTitle.copyWith(
-                          color: Colors.black,
+                  if (!state.isChoosingGoal)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _saving || !state.canAdvance
+                            ? null
+                            : state.isLastStep
+                            ? () => _save(controller.finish)
+                            : controller.next,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.systemBlue,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          state.isLastStep ? 'GUARDAR Y EMPEZAR' : 'SIGUIENTE',
+                          style: AppTypography.panelTitle.copyWith(
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 4),
                   TextButton(
-                    onPressed: () => controller.skip(),
+                    onPressed: _saving ? null : () => _save(controller.skip),
                     child: Text(
-                      'Prefiero el stack de ejemplo',
+                      'Usar la rutina de ejemplo',
                       style: AppTypography.caption,
                     ),
                   ),
@@ -110,7 +129,7 @@ class _Header extends StatelessWidget {
             Expanded(child: XpBar(progress: progress, height: 4)),
             const SizedBox(width: 12),
             Text(
-              total == 0 ? 'META' : '${step + 1}/$total',
+              total == 0 ? 'OBJETIVO' : '${step + 1}/$total',
               style: AppTypography.systemLabel.copyWith(
                 fontSize: 10,
                 color: AppColors.textMuted,
@@ -145,11 +164,11 @@ class _GoalPicker extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
     children: [
-      Text('¿Cuál es tu meta?', style: AppTypography.screenTitle),
+      Text('¿Cuál es tu objetivo?', style: AppTypography.screenTitle),
       const SizedBox(height: 8),
       Text(
-        'Con esto montamos tus siete misiones de cada día. Podrás cambiarla '
-        'cuando quieras.',
+        'Con esto armamos tus siete misiones diarias. Puedes cambiarlas '
+        'cuando quieras desde el ícono de ajustes.',
         style: AppTypography.caption,
       ),
       const SizedBox(height: 20),

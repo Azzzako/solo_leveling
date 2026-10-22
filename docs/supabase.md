@@ -9,19 +9,19 @@ nada se sube a la nube.
 1. New project en <https://supabase.com/dashboard>.
 2. Authentication → Sign In / Providers → **Email** activado.
    En Project Settings → API aparecen la **URL** y la **publishable key**
-   (`sb_publishable_…`, sustituye a la antigua `anon` key).
+   (`sb_publishable_…`, reemplaza a la antigua `anon` key).
 3. En Authentication → Settings: si quieres confirmar el correo al registrarse,
    deja *Confirm email* activado; si quieres entrar al instante, desactívalo.
 
 ## 2. Poner las claves en la app
 
-Opción A (fichero):
+Opción A (archivo):
 
 Edita `lib/src/core/config/supabase_config.local.dart` con la URL y la
-publishable key. La clave va en el mismo hueco que la antigua `anonKey`.
+publishable key. La clave va en el mismo lugar que la antigua `anonKey`.
 
 La publishable key está pensada para ir dentro del cliente, pero si prefieres
-no publicarla en el repositorio, deja el fichero vacío y usa la opción B.
+no publicarla en el repositorio, deja el archivo vacío y usa la opción B.
 
 Opción B (dart-define, para CI o builds):
 

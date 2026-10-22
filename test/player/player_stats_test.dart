@@ -95,61 +95,104 @@ void main() {
       expect(HunterRank.fromLevel(100), HunterRank.sss);
     });
 
-    test('todos los rangos tienen etiqueta y título', () {
+    test('todos los rangos tienen etiqueta y título únicos', () {
       for (final rank in HunterRank.values) {
         expect(rank.label, isNotEmpty);
         expect(rank.title, isNotEmpty);
       }
+      expect(HunterRank.values.map((r) => r.title).toSet(), hasLength(8));
+      expect(HunterRank.e.title, 'Despertado');
     });
   });
 
-  group('streak', () {
-    final monday = DateTime(2026, 10, 19, 21);
-    final tuesday = DateTime(2026, 10, 20, 7);
-    final wednesday = DateTime(2026, 10, 21, 23);
+  group('streakFrom', () {
+    final today = DateTime(2026, 10, 22, 9);
 
-    test('primer completado arranca el streak en 1', () {
+    test('sin misiones cumplidas no hay racha', () {
+      expect(PlayerStats.streakFrom(const [], today), 0);
+    });
+
+    test('cumplir hoy por primera vez arranca la racha en 1', () {
+      expect(PlayerStats.streakFrom([DateTime(2026, 10, 22, 7)], today), 1);
+    });
+
+    test('varias misiones el mismo día cuentan como un solo día', () {
       expect(
-        PlayerStats.streakAfterCompletion(
-          currentStreak: 0,
-          today: monday,
-          lastCompletion: null,
-        ),
+        PlayerStats.streakFrom([
+          DateTime(2026, 10, 22, 7),
+          DateTime(2026, 10, 22, 12),
+          DateTime(2026, 10, 22, 21),
+        ], today),
         1,
       );
     });
 
-    test('varias misiones el mismo día no suben el streak', () {
+    test('días consecutivos suman', () {
       expect(
-        PlayerStats.streakAfterCompletion(
-          currentStreak: 3,
-          today: monday,
-          lastCompletion: DateTime(2026, 10, 19, 8),
-        ),
+        PlayerStats.streakFrom([
+          DateTime(2026, 10, 22, 7),
+          DateTime(2026, 10, 21, 23),
+          DateTime(2026, 10, 20, 6),
+        ], today),
         3,
       );
     });
 
-    test('día consecutivo lo incrementa', () {
+    test('si hoy aún no cumples, la racha de ayer sigue viva', () {
       expect(
-        PlayerStats.streakAfterCompletion(
-          currentStreak: 3,
-          today: tuesday,
-          lastCompletion: monday,
-        ),
-        4,
+        PlayerStats.streakFrom([
+          DateTime(2026, 10, 21, 23),
+          DateTime(2026, 10, 20, 6),
+        ], today),
+        2,
       );
     });
 
-    test('día fallido reinicia el streak', () {
+    test('un día sin cumplir rompe la racha', () {
       expect(
-        PlayerStats.streakAfterCompletion(
-          currentStreak: 9,
-          today: wednesday,
-          lastCompletion: monday,
-        ),
-        1,
+        PlayerStats.streakFrom([
+          DateTime(2026, 10, 20, 23),
+          DateTime(2026, 10, 19, 6),
+        ], today),
+        0,
       );
+    });
+
+    test('un hueco en medio solo cuenta el tramo más reciente', () {
+      expect(
+        PlayerStats.streakFrom([
+          DateTime(2026, 10, 22, 8),
+          DateTime(2026, 10, 21, 8),
+          DateTime(2026, 10, 19, 8),
+          DateTime(2026, 10, 18, 8),
+        ], today),
+        2,
+      );
+    });
+
+    test('cruza el cambio de mes', () {
+      expect(
+        PlayerStats.streakFrom([
+          DateTime(2026, 11, 1, 8),
+          DateTime(2026, 10, 31, 8),
+          DateTime(2026, 10, 30, 8),
+        ], DateTime(2026, 11, 1, 20)),
+        3,
+      );
+    });
+  });
+
+  group('copyWith', () {
+    test('puede limpiar la última misión cumplida', () {
+      final stats = PlayerStats(
+        name: 'A',
+        totalXp: 0,
+        streak: 1,
+        lastCompletion: DateTime(2026, 10, 22),
+      );
+
+      expect(stats.copyWith(clearLastCompletion: true).lastCompletion, isNull);
+      expect(stats.copyWith(streak: 2).lastCompletion, isNotNull);
     });
   });
 }

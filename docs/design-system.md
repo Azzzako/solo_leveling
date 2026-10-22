@@ -62,9 +62,24 @@ Shared widgets in `lib/src/core/widgets/system_widgets.dart`:
 - Any action: SnackBar, `AppTypography.bodyStrong`.
 - Level up: gold accent + `bolt` icon.
 - Missions: tap the card to complete. Completed cards get a line-through, dimmed
-  rank badge and a `verified` icon.
+  rank badge and a `verified` icon. Series use `+` steps of
+  `subtaskStepFor(target)` (about a fifth of the target).
+- Mission card grid: every bar ends at the same x on every card (fixed 40 px
+  action slot + counter column sized to `00/00` with tabular figures); series
+  bars all start at the same x (title column sized to the longest catalog
+  series name). Cards with series show `Avance x/y` instead of a header bar;
+  cards without series show a `0/1` bar. Measure text with
+  `DefaultTextStyle.merge`, never the raw style. `mission_card_test.dart`
+  checks the alignment in pixels.
+- No nested `Scaffold` inside the shell branches: shell SnackBars would cover
+  their FABs. Put screen actions in the `SectionHeader` trailing slot.
 
-## Content in Spanish
+## Content in Spanish (México)
 
-UI strings are Spanish, short, imperative ("Entrena 30 minutos", "Bebe 2 litros
-de agua"). Missions are phrased as commands, not descriptions.
+UI strings are Mexican Spanish, short, imperative ("Entrena 30 minutos",
+"Toma 2 litros de agua"). Missions are phrased as commands, not descriptions.
+Use Mexican vocabulary: celular (not móvil), lagartijas (not flexiones),
+colación (not tentempié), audífonos (not auriculares), salir con amigos (not
+quedar), platicar, armar. Avoid English in the UI ("stack", "status"): say
+rutina, misiones, estado. Thousands separator is a comma (`10,000`), dates are
+`dd/mm/aaaa`.

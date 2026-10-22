@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -155,6 +156,31 @@ void main() {
       expect(container.read(playerProvider).value!.totalXp, -expected);
     });
 
+    test('los días sin abrir la app también se cobran', () async {
+      final today = DateTime.now();
+      final base = DateTime(today.year, today.month, today.day);
+      final firstDay = base.subtract(const Duration(days: 3));
+      await container
+          .read(missionRepositoryProvider)
+          .generateDailyMissions(firstDay, level: 1);
+      final settings = await container.read(settingsStoreProvider.future);
+      await settings.writeLastSettledDate(
+        firstDay.subtract(const Duration(days: 1)),
+      );
+      container.listen(
+        dailySettlementProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+
+      final settlement = await settle();
+
+      expect(settlement.daysSettled, 3);
+      expect(settlement.daysPenalized, 3);
+      expect(settlement.penaltyApplied, dailyStackXp * 3);
+      expect(container.read(playerProvider).value!.totalXp, -dailyStackXp * 3);
+    });
+
     test('no cobra dos veces el mismo día', () async {
       container.listen(
         dailySettlementProvider,
@@ -183,5 +209,117 @@ void main() {
 
     final repository = container.read(missionRepositoryProvider);
     expect(await repository.dailyMissionsOn(DateTime.now()), hasLength(7));
+  });
+
+  test(
+    'una versión nueva del catálogo rehace el día y respeta lo hecho',
+    () async {
+      final repository = container.read(missionRepositoryProvider);
+      final today = DateTime.now();
+      await repository.applyStack(
+        goal: DailyGoal.fisico,
+        answers: const {'training': 'strength', 'intensity': 'soft'},
+        day: today,
+        level: 1,
+      );
+      final exercise = (await repository.dailyMissionsOn(today)).first;
+      final series = await repository.subtasksOf(exercise.id);
+      await (db.update(db.missionSubtasks)
+            ..where((s) => s.id.equals(series.last.id)))
+          .write(const MissionSubtasksCompanion(target: Value(6)));
+      await repository.registerSubtaskProgress(
+        series.first.id,
+        amount: series.first.target,
+      );
+      await (db.update(db.userPreferences))
+          .write(const UserPreferencesCompanion(stackVersion: Value(1)));
+
+      container.listen(
+        ensureDailyMissionsProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      await container.read(ensureDailyMissionsProvider.future);
+
+      final rebuilt = (await repository.dailyMissionsOn(today)).first;
+      final after = await repository.subtasksOf(rebuilt.id);
+      expect(after.map((s) => s.target), everyElement(30));
+      expect(after.first.progress, 30);
+      expect(after.skip(1).map((s) => s.progress), everyElement(0));
+      expect(rebuilt.progress, 1);
+      expect(
+        (await repository.userPreference())!.stackVersion,
+        stackFormatVersion,
+      );
+    },
+  );
+
+  group('racha', () {
+    Future<void> ready() async {
+      container.listen(
+        ensureDailyMissionsProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      await container.read(ensureDailyMissionsProvider.future);
+    }
+
+    Future<Mission> water() async {
+      final missions = await container
+          .read(missionRepositoryProvider)
+          .dailyMissionsOn(DateTime.now());
+      return missions.firstWhere((m) => m.title.startsWith('Toma'));
+    }
+
+    test('cumplir arranca la racha y deshacer la regresa', () async {
+      await ready();
+      final action = container.read(registerMissionProgressProvider);
+      final mission = await water();
+
+      final reward = await action.complete(mission);
+      expect(reward.xpEarned, mission.xpReward);
+      expect(container.read(playerProvider).value!.streak, 1);
+
+      await action.undoMission(mission);
+      final stats = container.read(playerProvider).value!;
+      expect(stats.streak, 0);
+      expect(stats.lastCompletion, isNull);
+      expect(stats.totalXp, 0);
+
+      await action.complete(mission);
+      expect(container.read(playerProvider).value!.streak, 1);
+    });
+
+    test('reiniciar el día no deja una racha regalada', () async {
+      final repository = container.read(missionRepositoryProvider);
+      final now = DateTime.now();
+      final yesterday = DateTime(now.year, now.month, now.day - 1);
+      await repository.generateDailyMissions(yesterday, level: 1);
+      final old = (await repository.dailyMissionsOn(yesterday)).first;
+      await db
+          .into(db.missionCompletions)
+          .insert(
+            MissionCompletionsCompanion.insert(
+              id: 'ayer',
+              missionId: old.id,
+              completedAt: DateTime(
+                yesterday.year,
+                yesterday.month,
+                yesterday.day,
+                20,
+              ),
+              xpEarned: 0,
+            ),
+          );
+      await ready();
+      expect(container.read(playerProvider).value!.streak, 1);
+
+      final action = container.read(registerMissionProgressProvider);
+      await action.complete(await water());
+      expect(container.read(playerProvider).value!.streak, 2);
+
+      await action.resetToday();
+      expect(container.read(playerProvider).value!.streak, 1);
+    });
   });
 }

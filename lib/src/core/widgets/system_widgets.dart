@@ -46,8 +46,12 @@ class SystemLabel extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) =>
-      Text(text, style: AppTypography.systemLabel.copyWith(color: color));
+  Widget build(BuildContext context) => Text(
+    text,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: AppTypography.systemLabel.copyWith(color: color),
+  );
 }
 
 class SectionHeader extends StatelessWidget {
@@ -61,7 +65,7 @@ class SectionHeader extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 12),
     child: Row(
       children: [
-        SystemLabel(title),
+        Flexible(flex: 4, child: SystemLabel(title)),
         const SizedBox(width: 12),
         const Expanded(child: Divider()),
         if (trailing != null) ...[const SizedBox(width: 12), trailing!],

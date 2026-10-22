@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:solo_leveling/src/core/db/app_database.dart';
@@ -14,7 +15,7 @@ void main() {
 
   final exerciseXp = defaultStack().first.xpReward;
   final waterXp = defaultStack()
-      .firstWhere((d) => d.title.startsWith('Bebe'))
+      .firstWhere((d) => d.title.startsWith('Toma'))
       .xpReward;
 
   setUp(() {
@@ -99,7 +100,8 @@ void main() {
         exercise.subtasks.map((s) => s.targetAt(20)).toList(),
       );
       expect(highTargets.first, greaterThan(lowTargets.first));
-      expect(highTargets, [88, 98, 88, 29]);
+      expect(lowTargets, [30, 30, 30, 30]);
+      expect(highTargets, [68, 68, 68, 68]);
     });
 
     test(
@@ -230,7 +232,7 @@ void main() {
       await repository.generateDailyMissions(day, level: 1);
       final water = _byTitle(
         await repository.dailyMissionsOn(day),
-        'Bebe 2 litros de agua',
+        'Toma 2 litros de agua',
       );
       expect(await repository.subtasksOf(water.id), isEmpty);
 
@@ -287,8 +289,14 @@ void main() {
         final exercise = (await repository.dailyMissionsOn(day)).first;
         final subtasks = await repository.subtasksOf(exercise.id);
 
-        await repository.registerSubtaskProgress(subtasks[0].id, amount: 50);
-        await repository.registerSubtaskProgress(subtasks[1].id, amount: 60);
+        await repository.registerSubtaskProgress(
+          subtasks[0].id,
+          amount: subtasks[0].target,
+        );
+        await repository.registerSubtaskProgress(
+          subtasks[1].id,
+          amount: subtasks[1].target,
+        );
         expect((await repository.dailyMissionsOn(day)).first.progress, 2);
 
         final outcome = await repository.resetSubtask(subtasks[1].id);
@@ -296,7 +304,7 @@ void main() {
         expect(outcome.xpRefunded, 0);
         final after = await repository.subtasksOf(exercise.id);
         expect(after[1].progress, 0);
-        expect(after[0].progress, 50);
+        expect(after[0].progress, subtasks[0].target);
         expect((await repository.dailyMissionsOn(day)).first.progress, 1);
       },
     );
@@ -325,7 +333,7 @@ void main() {
       await repository.generateDailyMissions(day, level: 1);
       final missions = await repository.dailyMissionsOn(day);
       final exercise = missions.first;
-      final waterMission = _byTitle(missions, 'Bebe 2 litros de agua');
+      final waterMission = _byTitle(missions, 'Toma 2 litros de agua');
       for (final s in await repository.subtasksOf(exercise.id)) {
         await repository.registerSubtaskProgress(s.id, amount: s.target);
       }
@@ -371,7 +379,7 @@ void main() {
       await repository.generateDailyMissions(day, level: 1);
       final missions = await repository.dailyMissionsOn(day);
       final exercise = missions.first;
-      final waterMission = _byTitle(missions, 'Bebe 2 litros de agua');
+      final waterMission = _byTitle(missions, 'Toma 2 litros de agua');
       final subtasks = await repository.subtasksOf(exercise.id);
       for (final s in subtasks) {
         await repository.registerSubtaskProgress(s.id, amount: s.target);
@@ -399,7 +407,7 @@ void main() {
       await repository.generateDailyMissions(day, level: 1);
       final waterMission = _byTitle(
         await repository.dailyMissionsOn(day),
-        'Bebe 2 litros de agua',
+        'Toma 2 litros de agua',
       );
       await repository.registerProgress(waterMission.id, amount: 2);
       await repository.resetDay(day);
@@ -417,7 +425,7 @@ void main() {
       final yesterday = day.subtract(const Duration(days: 1));
       await repository.generateDailyMissions(yesterday, level: 1);
       final old = await repository.dailyMissionsOn(yesterday);
-      final oldCats = _byTitle(old, 'Juega con las mascotas');
+      final oldCats = _byTitle(old, 'Juega con tus mascotas');
       await repository.registerProgress(oldCats.id, amount: 10);
       await repository.generateDailyMissions(day, level: 1);
 
@@ -428,7 +436,7 @@ void main() {
       expect(result.xpRefunded, 0);
       final untouched = await repository.dailyMissionsOn(yesterday);
       expect(untouched, hasLength(7));
-      expect(_byTitle(untouched, 'Juega con las mascotas').progress, 10);
+      expect(_byTitle(untouched, 'Juega con tus mascotas').progress, 10);
     });
   });
 
@@ -444,8 +452,8 @@ void main() {
     test('solo penaliza las misiones sin completar', () async {
       await repository.generateDailyMissions(day, level: 1);
       final missions = await repository.dailyMissionsOn(day);
-      final waterMission = _byTitle(missions, 'Bebe 2 litros de agua');
-      final catsMission = _byTitle(missions, 'Juega con las mascotas');
+      final waterMission = _byTitle(missions, 'Toma 2 litros de agua');
+      final catsMission = _byTitle(missions, 'Juega con tus mascotas');
       await repository.registerProgress(waterMission.id, amount: 2);
       await repository.registerProgress(
         catsMission.id,
@@ -480,6 +488,167 @@ void main() {
 
     test('un día sin misiones no penaliza', () async {
       expect(await repository.penaltyForDay(day), 0);
+    });
+
+    test('un día sin abrir la app cuesta todo el stack', () async {
+      await repository.generateDailyMissions(day, level: 1);
+
+      expect(
+        await repository.penaltyForDay(day.add(const Duration(days: 2))),
+        dailyStackXp,
+      );
+    });
+
+    test('antes del primer día con misiones no hay castigo', () async {
+      await repository.generateDailyMissions(day, level: 1);
+
+      expect(
+        await repository.penaltyForDay(day.subtract(const Duration(days: 1))),
+        0,
+      );
+    });
+
+    test(
+      'una misión cumplida pasada la medianoche cuenta para su día',
+      () async {
+        await repository.generateDailyMissions(day, level: 1);
+        final water = _byTitle(
+          await repository.dailyMissionsOn(day),
+          'Toma 2 litros de agua',
+        );
+        await db
+            .into(db.missionCompletions)
+            .insert(
+              MissionCompletionsCompanion.insert(
+                id: 'late',
+                missionId: water.id,
+                completedAt: DateTime(day.year, day.month, day.day + 1, 0, 10),
+                xpEarned: water.xpReward,
+              ),
+            );
+
+        expect(await repository.penaltyForDay(day), dailyStackXp - waterXp);
+      },
+    );
+  });
+
+  group('historial y concurrencia', () {
+    final day = DateTime(2026, 10, 22);
+
+    test('completionTimes devuelve lo más reciente primero', () async {
+      await repository.generateDailyMissions(day, level: 1);
+      final missions = await repository.dailyMissionsOn(day);
+      for (final (i, mission) in missions.skip(4).indexed) {
+        await db
+            .into(db.missionCompletions)
+            .insert(
+              MissionCompletionsCompanion.insert(
+                id: 'c$i',
+                missionId: mission.id,
+                completedAt: DateTime(2026, 10, 20 + i),
+                xpEarned: 1,
+              ),
+            );
+      }
+
+      final times = await repository.completionTimes();
+
+      expect(times.first, DateTime(2026, 10, 22));
+      expect(times.last, DateTime(2026, 10, 20));
+    });
+
+    test('dos toques simultáneos en la última serie pagan una vez', () async {
+      await repository.generateDailyMissions(day, level: 1);
+      final exercise = (await repository.dailyMissionsOn(day)).first;
+      final subtasks = await repository.subtasksOf(exercise.id);
+      for (final s in subtasks.take(3)) {
+        await repository.registerSubtaskProgress(s.id, amount: s.target);
+      }
+      final last = subtasks.last;
+
+      final outcomes = await Future.wait([
+        repository.registerSubtaskProgress(last.id, amount: last.target),
+        repository.registerSubtaskProgress(last.id, amount: last.target),
+      ]);
+
+      expect(outcomes.where((o) => o.mission.missionCompleted), hasLength(1));
+      expect(await repository.watchCompletionsOn(day).first, hasLength(1));
+    });
+
+    test('generar dos veces a la vez no duplica el día', () async {
+      await repository.ensureStackSeeded();
+      await Future.wait([
+        repository.generateDailyMissions(day, level: 1),
+        repository.generateDailyMissions(day, level: 1),
+      ]);
+
+      expect(await repository.dailyMissionsOn(day), hasLength(7));
+    });
+  });
+
+  group('migración de plantillas', () {
+    test(
+      'un stack de una versión vieja se regenera con los textos nuevos',
+      () async {
+        await repository.saveStack(DailyGoal.fisico, [
+          MissionDraft(
+            kind: 'agua',
+            title: 'Bebe 2 litros de agua',
+            description: 'viejo',
+            difficulty: MissionDifficulty.trivial,
+            xpReward: dailyStackXp,
+            target: 2,
+          ),
+        ]);
+        await repository.savePreferences(
+          goal: DailyGoal.fisico,
+          answers: const {'training': 'cardio'},
+          source: PreferenceSource.interview,
+        );
+        await (db.update(db.userPreferences))
+            .write(const UserPreferencesCompanion(stackVersion: Value(1)));
+
+        await repository.ensureStackSeeded();
+
+        final templates = await repository.stackTemplates();
+        final preference = await repository.userPreference();
+        expect(
+          templates.map((t) => t.title),
+          buildStack(DailyGoal.fisico, const {
+            'training': 'cardio',
+          }).map((d) => d.title),
+        );
+        expect(preference!.stackVersion, stackFormatVersion);
+        expect(preference.source, PreferenceSource.interview);
+      },
+    );
+
+    test('un stack heredado de misiones viejas no se toca', () async {
+      await repository.saveStack(DailyGoal.fisico, [
+        MissionDraft(
+          kind: 'gatos',
+          title: 'Juega con los gatos',
+          description: 'propio',
+          difficulty: MissionDifficulty.trivial,
+          xpReward: dailyStackXp,
+        ),
+      ]);
+      await repository.savePreferences(
+        goal: DailyGoal.fisico,
+        answers: const {},
+        source: PreferenceSource.migrated,
+      );
+      await (db.update(db.userPreferences))
+          .write(const UserPreferencesCompanion(stackVersion: Value(1)));
+
+      await repository.ensureStackSeeded();
+
+      final templates = await repository.stackTemplates();
+      expect(templates.single.title, 'Juega con los gatos');
+      expect(
+        (await repository.userPreference())!.stackVersion,
+        stackFormatVersion,
+      );
     });
   });
 

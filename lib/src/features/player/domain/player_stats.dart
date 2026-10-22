@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/dates.dart';
+
 enum HunterRank {
-  e('E', 'Despiadto'),
-  d('D', 'Inútil'),
+  e('E', 'Despertado'),
+  d('D', 'Aprendiz'),
   c('C', 'Promesa'),
   b('B', 'Constante'),
   a('A', 'Brillante'),
-  s('S', 'Sombrío'),
-  ss('SS', 'Élite'),
+  s('S', 'Élite'),
+  ss('SS', 'Leyenda'),
   sss('SSS', 'Monarca');
 
   const HunterRank(this.label, this.title);
@@ -90,28 +92,25 @@ class PlayerStats {
     int? totalXp,
     int? streak,
     DateTime? lastCompletion,
+    bool clearLastCompletion = false,
   }) => PlayerStats(
     name: name ?? this.name,
     totalXp: totalXp ?? this.totalXp,
     streak: streak ?? this.streak,
-    lastCompletion: lastCompletion ?? this.lastCompletion,
+    lastCompletion: clearLastCompletion
+        ? null
+        : (lastCompletion ?? this.lastCompletion),
   );
 
-  static int streakAfterCompletion({
-    required int currentStreak,
-    required DateTime today,
-    required DateTime? lastCompletion,
-  }) {
-    if (lastCompletion == null) return 1;
-    final last = DateTime(
-      lastCompletion.year,
-      lastCompletion.month,
-      lastCompletion.day,
-    );
-    final day = DateTime(today.year, today.month, today.day);
-    final diff = day.difference(last).inDays;
-    if (diff == 0) return currentStreak;
-    if (diff == 1) return currentStreak + 1;
-    return 1;
+  static int streakFrom(Iterable<DateTime> completions, DateTime today) {
+    final days = {for (final completion in completions) dateOnly(completion)};
+    var cursor = dateOnly(today);
+    if (!days.contains(cursor)) cursor = previousDay(cursor);
+    var streak = 0;
+    while (days.contains(cursor)) {
+      streak++;
+      cursor = previousDay(cursor);
+    }
+    return streak;
   }
 }

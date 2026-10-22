@@ -16,57 +16,60 @@ class PlayerController extends AsyncNotifier<PlayerStats> {
       ref.read(settingsStoreProvider).value ??
       (throw StateError('SettingsStore no inicializado'));
 
-  Future<void> rename(String name) async {
-    final stats = state.value ?? await future;
-    final next = stats.copyWith(
-      name: name.trim().isEmpty ? 'Cazador' : name.trim(),
-    );
+  Future<PlayerStats> current() async => state.value ?? await future;
+
+  Future<void> _save(PlayerStats next) async {
     state = AsyncData(next);
     await _settings.writeStats(next);
   }
 
-  Future<RewardResult> rewardMission(int xpEarned) async {
+  Future<void> rename(String name) async {
     final stats = state.value ?? await future;
-    final now = DateTime.now();
-    final before = stats.level;
-    final next = stats.copyWith(
-      totalXp: stats.totalXp + xpEarned,
-      streak: PlayerStats.streakAfterCompletion(
-        currentStreak: stats.streak,
-        today: now,
-        lastCompletion: stats.lastCompletion,
+    final trimmed = name.trim();
+    await _save(
+      stats.copyWith(
+        name: trimmed.isEmpty ? SettingsStore.defaultName : trimmed,
       ),
-      lastCompletion: now,
     );
-    state = AsyncData(next);
-    await _settings.writeStats(next);
+  }
+
+  Future<RewardResult> grantXp(int amount) async {
+    final stats = state.value ?? await future;
+    if (amount <= 0) {
+      return RewardResult(xpEarned: 0, leveledUp: false, newLevel: stats.level);
+    }
+    final next = stats.copyWith(totalXp: stats.totalXp + amount);
+    await _save(next);
     return RewardResult(
-      xpEarned: xpEarned,
-      leveledUp: next.level > before,
+      xpEarned: amount,
+      leveledUp: next.level > stats.level,
       newLevel: next.level,
     );
   }
 
-  Future<PlayerStats> revokeXp(int amount, {bool resetStreak = true}) async {
-    if (amount <= 0) return state.value ?? await future;
+  Future<PlayerStats> revokeXp(int amount) async {
     final stats = state.value ?? await future;
-    final today = ref.read(todayProvider);
-    final last = stats.lastCompletion;
-    final streakStartedToday =
-        resetStreak &&
-        stats.streak <= 1 &&
-        last != null &&
-        last.year == today.year &&
-        last.month == today.month &&
-        last.day == today.day;
-    final next = stats.copyWith(
-      totalXp: stats.totalXp - amount,
-      streak: streakStartedToday ? 0 : stats.streak,
-      lastCompletion: streakStartedToday ? null : last,
-    );
-    state = AsyncData(next);
-    await _settings.writeStats(next);
+    if (amount <= 0) return stats;
+    final next = stats.copyWith(totalXp: stats.totalXp - amount);
+    await _save(next);
     return next;
+  }
+
+  Future<void> syncStreak({
+    required int streak,
+    required DateTime? lastCompletion,
+  }) async {
+    final stats = state.value ?? await future;
+    if (stats.streak == streak && stats.lastCompletion == lastCompletion) {
+      return;
+    }
+    await _save(
+      stats.copyWith(
+        streak: streak,
+        lastCompletion: lastCompletion,
+        clearLastCompletion: lastCompletion == null,
+      ),
+    );
   }
 }
 
@@ -76,6 +79,8 @@ class RewardResult {
     required this.leveledUp,
     required this.newLevel,
   });
+
+  const RewardResult.none() : xpEarned = 0, leveledUp = false, newLevel = 0;
 
   final int xpEarned;
   final bool leveledUp;

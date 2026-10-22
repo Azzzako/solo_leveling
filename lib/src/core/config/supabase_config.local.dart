@@ -1,6 +1,6 @@
 // Credenciales de tu proyecto de Supabase.
-// Rellénalas con Project Settings → API (URL y "publishable key").
-// Esta clave está pensada para ir en el cliente (sustituye a la antigua anon
+// Llénalas con Project Settings → API (URL y "publishable key").
+// Esta clave está pensada para ir en el cliente (reemplaza a la antigua anon
 // key), pero si prefieres no subirla al repositorio, deja las dos vacías y
 // compila con:
 //   --dart-define=SUPABASE_URL=https://xxxx.supabase.co

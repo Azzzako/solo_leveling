@@ -69,4 +69,11 @@ abstract final class AppTypography {
     fontSize: 13,
     color: AppColors.textSecondary,
   );
+
+  static const counter = TextStyle(
+    fontFamily: _body,
+    fontSize: 13,
+    fontFeatures: [FontFeature.tabularFigures()],
+    color: AppColors.textSecondary,
+  );
 }

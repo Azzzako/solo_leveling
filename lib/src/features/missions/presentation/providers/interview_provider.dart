@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
-import '../../../player/presentation/providers/player_provider.dart';
+import '../../data/mission_repository.dart';
 import '../../domain/interview_catalog.dart';
 import 'missions_provider.dart';
 
@@ -13,7 +13,7 @@ final userPreferencesProvider = FutureProvider<InterviewState>((ref) async {
       : InterviewState(
           goal: preference.goal,
           answers: repository.decodeAnswers(preference.answers),
-          configured: preference.source == 'interview',
+          configured: PreferenceSource.isConfigured(preference.source),
         );
 });
 
@@ -53,6 +53,11 @@ class InterviewState {
   }
 
   bool get isLastStep => step == questions.length - 1;
+
+  bool get canAdvance {
+    final question = currentQuestion;
+    return question != null && answers.containsKey(question.id);
+  }
 
   double get progress {
     if (goal == null) return 0;
@@ -101,6 +106,11 @@ class InterviewController extends Notifier<InterviewState> {
     );
   }
 
+  void next() {
+    if (!state.canAdvance || state.isLastStep) return;
+    state = state.copyWith(step: state.step + 1);
+  }
+
   void back() {
     if (state.step == 0) {
       state = state.copyWith(clearGoal: true, step: 0);
@@ -112,29 +122,31 @@ class InterviewController extends Notifier<InterviewState> {
   Future<void> finish() async {
     final goal = state.goal;
     if (goal == null) return;
-    await _persist(goal, state.answers);
+    await _persist(goal, state.answers, PreferenceSource.interview);
   }
 
-  Future<void> skip() async {
-    await _persist(state.goal ?? DailyGoal.fisico, const {}, skipped: true);
-  }
+  Future<void> skip() => _persist(
+    state.goal ?? DailyGoal.fisico,
+    const {},
+    PreferenceSource.skipped,
+  );
 
   Future<void> _persist(
     DailyGoal goal,
-    Map<String, String> answers, {
-    bool skipped = false,
-  }) async {
-    final today = ref.read(todayProvider);
-    final level = ref.read(playerProvider).value?.level ?? 1;
-    await ref
-        .read(missionRepositoryProvider)
-        .applyStack(
-          goal: goal,
-          answers: answers,
-          day: today,
-          level: level,
-          source: skipped ? 'default' : 'interview',
-        );
+    Map<String, String> answers,
+    String source,
+  ) async {
+    final effects = PlayerEffects(ref);
+    final repository = ref.read(missionRepositoryProvider);
+    final day = ref.read(todayProvider);
+    final outcome = await repository.applyStack(
+      goal: goal,
+      answers: answers,
+      day: day,
+      level: await effects.level(),
+      source: source,
+    );
+    await effects.refund(outcome);
     ref.invalidate(userPreferencesProvider);
     ref.invalidate(ensureDailyMissionsProvider);
   }

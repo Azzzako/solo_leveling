@@ -7,6 +7,8 @@ class SettingsStore {
 
   static const xpCurveVersion = 3;
 
+  static const defaultName = 'Cazador';
+
   static const _levelScaleByCurveVersion = <int, double>{1: 0.35, 2: 1, 3: 1};
 
   final SharedPreferences _prefs;
@@ -74,26 +76,28 @@ class SettingsStore {
     await _prefs.setBool(_kLegacyClaimed, true);
   }
 
-  PlayerStats readStats() => PlayerStats(
-    name: _prefs.getString(_key(_kName)) ?? 'Cazador',
-    totalXp: _prefs.getInt(_key(_kXp)) ?? 0,
-    streak: _prefs.getInt(_key(_kStreak)) ?? 0,
-    lastCompletion: _prefs.getInt(_key(_kLastCompletion)) == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(
-            _prefs.getInt(_key(_kLastCompletion))!,
-          ),
-  );
+  PlayerStats readStats() {
+    final lastMillis = _prefs.getInt(_key(_kLastCompletion)) ?? 0;
+    return PlayerStats(
+      name: _prefs.getString(_key(_kName)) ?? defaultName,
+      totalXp: _prefs.getInt(_key(_kXp)) ?? 0,
+      streak: _prefs.getInt(_key(_kStreak)) ?? 0,
+      lastCompletion: lastMillis <= 0
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastMillis),
+    );
+  }
 
   Future<void> writeStats(PlayerStats stats) async {
     await _prefs.setString(_key(_kName), stats.name);
     await _prefs.setInt(_key(_kXp), stats.totalXp);
     await _prefs.setInt(_key(_kStreak), stats.streak);
     final last = stats.lastCompletion;
-    await _prefs.setInt(
-      _key(_kLastCompletion),
-      last == null ? 0 : last.millisecondsSinceEpoch,
-    );
+    if (last == null) {
+      await _prefs.remove(_key(_kLastCompletion));
+    } else {
+      await _prefs.setInt(_key(_kLastCompletion), last.millisecondsSinceEpoch);
+    }
   }
 
   DateTime? get dailyMissionsSeedDate {

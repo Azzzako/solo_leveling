@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/db/app_database.dart';
 import '../../../../core/providers/core_providers.dart';
+import '../../../../core/utils/dates.dart';
+import '../../../player/domain/player_stats.dart';
 import '../../../player/presentation/providers/player_provider.dart';
 import '../../data/mission_repository.dart';
 
@@ -12,9 +14,6 @@ final dailyMissionsProvider = StreamProvider<List<Mission>>((ref) {
   final day = ref.watch(todayProvider);
   return ref.watch(missionRepositoryProvider).watchDaily(day);
 });
-final activeMissionsProvider = StreamProvider<List<Mission>>(
-  (ref) => ref.watch(missionRepositoryProvider).watchActive(),
-);
 final todayCompletionsProvider = StreamProvider<List<MissionCompletion>>((ref) {
   final day = ref.watch(todayProvider);
   return ref.watch(missionRepositoryProvider).watchCompletionsOn(day);
@@ -61,87 +60,116 @@ final dailySummaryProvider = Provider<AsyncValue<DailySummary>>((ref) {
     error: (e, s) => AsyncError(e, s),
   );
 });
-final ensureDailyMissionsProvider = FutureProvider<void>((ref) async {
-  final settings = await ref.watch(settingsStoreProvider.future);
-  final stats = await ref.watch(playerProvider.future);
-  final repository = ref.watch(missionRepositoryProvider);
-  final day = ref.watch(todayProvider);
 
-  await repository.ensureStackSeeded();
-  final existing = await repository.dailyMissionsOn(day);
-  final needsRebuild =
-      existing.isNotEmpty && !await repository.stackMatchesTemplates(existing);
-  final seed = settings.dailyMissionsSeedDate;
-  final alreadySeeded =
-      seed != null &&
-      seed.year == day.year &&
-      seed.month == day.month &&
-      seed.day == day.day;
+class PlayerEffects {
+  PlayerEffects(Ref ref)
+    : _repository = ref.read(missionRepositoryProvider),
+      _player = ref.read(playerProvider.notifier),
+      _today = ref.read(todayProvider);
 
-  if (needsRebuild) {
-    await repository.clearDailyMissions(day);
-  } else if (existing.isNotEmpty || alreadySeeded) {
-    return;
+  final MissionRepository _repository;
+  final PlayerController _player;
+  final DateTime _today;
+
+  Future<int> level() async => (await _player.current()).level;
+
+  Future<RewardResult> reward(int xp) async {
+    final result = await _player.grantXp(xp);
+    await syncStreak();
+    return result;
   }
 
-  await repository.generateDailyMissions(day, level: stats.level);
+  Future<void> penalize(int xp) => _player.revokeXp(xp);
+
+  Future<ResetOutcome> refund(ResetOutcome outcome) async {
+    if (outcome.xpRefunded > 0) await _player.revokeXp(outcome.xpRefunded);
+    await syncStreak();
+    return outcome;
+  }
+
+  Future<void> syncStreak() async {
+    final times = await _repository.completionTimes();
+    await _player.syncStreak(
+      streak: PlayerStats.streakFrom(times, _today),
+      lastCompletion: times.isEmpty ? null : times.first,
+    );
+  }
+}
+
+final ensureDailyMissionsProvider = FutureProvider<void>((ref) async {
+  final settlement = ref.watch(dailySettlementProvider.future);
+  final settingsStore = ref.watch(settingsStoreProvider.future);
+  final repository = ref.watch(missionRepositoryProvider);
+  final day = ref.watch(todayProvider);
+  final effects = PlayerEffects(ref);
+
+  await settlement;
+  final settings = await settingsStore;
+  final level = await effects.level();
+
+  final stackChanged = await repository.ensureStackSeeded();
+  final existing = await repository.dailyMissionsOn(day);
+  if (existing.isEmpty) {
+    await repository.generateDailyMissions(day, level: level);
+  } else if (stackChanged ||
+      !await repository.stackMatchesTemplates(existing)) {
+    await effects.refund(await repository.rebuildDay(day, level: level));
+  }
   await settings.writeDailyMissionsSeed(day);
 });
+
 const maxSettledGapDays = 90;
 
 class DailySettlement {
   const DailySettlement({
     required this.daysSettled,
     required this.penaltyApplied,
+    this.daysPenalized = 0,
   });
 
   final int daysSettled;
+  final int daysPenalized;
   final int penaltyApplied;
 }
 
 final dailySettlementProvider = FutureProvider<DailySettlement>((ref) async {
-  final settings = await ref.watch(settingsStoreProvider.future);
+  final settingsStore = ref.watch(settingsStoreProvider.future);
   final repository = ref.watch(missionRepositoryProvider);
   final today = ref.watch(todayProvider);
+  final effects = PlayerEffects(ref);
+  final settings = await settingsStore;
 
+  final yesterday = previousDay(today);
   final lastSettled = settings.lastSettledDate;
-  final first = lastSettled == null
-      ? DateTime(
-          today.year,
-          today.month,
-          today.day,
-        ).subtract(const Duration(days: 1))
-      : DateTime(
-          lastSettled.year,
-          lastSettled.month,
-          lastSettled.day,
-        ).add(const Duration(days: 1));
-
-  var day = first;
-  var daysSettled = 0;
-  var penalty = 0;
-  while (day.isBefore(today) && daysSettled < maxSettledGapDays) {
-    final dayPenalty = await repository.penaltyForDay(day);
-    if (dayPenalty > 0) {
-      await ref
-          .read(playerProvider.notifier)
-          .revokeXp(dayPenalty, resetStreak: false);
-    }
-    penalty += dayPenalty;
-    daysSettled++;
-    day = day.add(const Duration(days: 1));
-  }
-
-  final settledThrough = DateTime(
+  var day = lastSettled == null ? yesterday : nextDay(dateOnly(lastSettled));
+  final oldestAllowed = DateTime(
     today.year,
     today.month,
-    today.day,
-  ).subtract(const Duration(days: 1));
-  if (daysSettled > 0 || lastSettled == null) {
-    await settings.writeLastSettledDate(settledThrough);
-  }
+    today.day - maxSettledGapDays,
+  );
+  if (day.isBefore(oldestAllowed)) day = oldestAllowed;
 
-  return DailySettlement(daysSettled: daysSettled, penaltyApplied: penalty);
+  var daysSettled = 0;
+  var daysPenalized = 0;
+  var penalty = 0;
+  while (day.isBefore(today)) {
+    final dayPenalty = await repository.penaltyForDay(day);
+    if (dayPenalty > 0) daysPenalized++;
+    penalty += dayPenalty;
+    daysSettled++;
+    day = nextDay(day);
+  }
+  if (daysSettled > 0 || lastSettled == null) {
+    await settings.writeLastSettledDate(yesterday);
+  }
+  if (penalty > 0) await effects.penalize(penalty);
+  await effects.syncStreak();
+
+  return DailySettlement(
+    daysSettled: daysSettled,
+    daysPenalized: daysPenalized,
+    penaltyApplied: penalty,
+  );
 });
 
 final registerMissionProgressProvider = Provider<MissionProgressAction>(
@@ -152,28 +180,22 @@ class MissionProgressAction {
   MissionProgressAction(this._ref);
   final Ref _ref;
 
-  Future<RewardResult> _reward(MissionCompletionOutcome outcome) async {
-    if (!outcome.missionCompleted) {
-      return const RewardResult(xpEarned: 0, leveledUp: false, newLevel: 0);
-    }
-    final reward = await _ref
-        .read(playerProvider.notifier)
-        .rewardMission(outcome.xpEarned);
-    return RewardResult(
-      xpEarned: reward.xpEarned,
-      leveledUp: reward.leveledUp,
-      newLevel: reward.leveledUp
-          ? reward.newLevel
-          : (_ref.read(playerProvider).value?.level ?? 0),
-    );
+  Future<RewardResult> _reward(
+    PlayerEffects effects,
+    MissionCompletionOutcome outcome,
+  ) async {
+    if (!outcome.missionCompleted) return const RewardResult.none();
+    return effects.reward(outcome.xpEarned);
   }
 
-  Future<RewardResult> advance(Mission mission, {int amount = 1}) async =>
-      _reward(
-        await _ref
-            .read(missionRepositoryProvider)
-            .registerProgress(mission.id, amount: amount),
-      );
+  Future<RewardResult> advance(Mission mission, {int amount = 1}) async {
+    final effects = PlayerEffects(_ref);
+    final repository = _ref.read(missionRepositoryProvider);
+    return _reward(
+      effects,
+      await repository.registerProgress(mission.id, amount: amount),
+    );
+  }
 
   Future<RewardResult> complete(Mission mission) =>
       advance(mission, amount: mission.target);
@@ -182,36 +204,31 @@ class MissionProgressAction {
     MissionSubtask subtask, {
     int amount = 1,
   }) async {
+    final effects = PlayerEffects(_ref);
     final outcome = await _ref
         .read(missionRepositoryProvider)
         .registerSubtaskProgress(subtask.id, amount: amount);
-    return _reward(outcome.mission);
+    return _reward(effects, outcome.mission);
   }
 
   Future<RewardResult> completeSubtask(MissionSubtask subtask) =>
       advanceSubtask(subtask, amount: subtask.target - subtask.progress);
 
-  Future<ResetOutcome> _settle(ResetOutcome outcome) async {
-    if (outcome.xpRefunded > 0) {
-      await _ref.read(playerProvider.notifier).revokeXp(outcome.xpRefunded);
-    }
-    return outcome;
-  }
-
   Future<ResetOutcome> resetToday() async {
-    final day = _ref.read(todayProvider);
-    return _settle(await _ref.read(missionRepositoryProvider).resetDay(day));
+    final effects = PlayerEffects(_ref);
+    final repository = _ref.read(missionRepositoryProvider);
+    return effects.refund(await repository.resetDay(_ref.read(todayProvider)));
   }
 
   Future<ResetOutcome> undoMission(Mission mission) async {
-    return _settle(
-      await _ref.read(missionRepositoryProvider).resetMission(mission.id),
-    );
+    final effects = PlayerEffects(_ref);
+    final repository = _ref.read(missionRepositoryProvider);
+    return effects.refund(await repository.resetMission(mission.id));
   }
 
   Future<ResetOutcome> undoSubtask(MissionSubtask subtask) async {
-    return _settle(
-      await _ref.read(missionRepositoryProvider).resetSubtask(subtask.id),
-    );
+    final effects = PlayerEffects(_ref);
+    final repository = _ref.read(missionRepositoryProvider);
+    return effects.refund(await repository.resetSubtask(subtask.id));
   }
 }

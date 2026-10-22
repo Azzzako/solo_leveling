@@ -7,7 +7,6 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
 import '../../features/missions/presentation/providers/interview_provider.dart';
-import '../../features/missions/presentation/screens/interview_screen.dart';
 import '../../features/missions/presentation/screens/missions_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -38,7 +37,7 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
-            label: 'Panel',
+            label: 'Inicio',
           ),
           NavigationDestination(
             icon: Icon(Icons.checklist_outlined),
@@ -95,7 +94,7 @@ class _SystemHeader extends ConsumerWidget {
           ),
           const SizedBox(width: 4),
           Tooltip(
-            message: 'Cambiar el stack de misiones',
+            message: 'Cambiar mis misiones diarias',
             child: IconButton(
               iconSize: 18,
               visualDensity: VisualDensity.compact,
@@ -105,7 +104,7 @@ class _SystemHeader extends ConsumerWidget {
             ),
           ),
           Tooltip(
-            message: 'Cambiar de cuenta',
+            message: 'Cerrar sesión',
             child: IconButton(
               iconSize: 18,
               visualDensity: VisualDensity.compact,
@@ -119,13 +118,9 @@ class _SystemHeader extends ConsumerWidget {
     );
   }
 
-  Future<void> _startReconfigure(BuildContext context, WidgetRef ref) async {
+  void _startReconfigure(BuildContext context, WidgetRef ref) {
     ref.read(interviewControllerProvider.notifier).restart();
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => const InterviewScreen(reconfigure: true),
-      ),
-    );
+    context.push(AppRoutes.reconfigure);
   }
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
@@ -133,7 +128,7 @@ class _SystemHeader extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.panel,
-        title: Text('Cambiar de cuenta', style: AppTypography.bodyStrong),
+        title: Text('Cerrar sesión', style: AppTypography.bodyStrong),
         content: Text(
           'Tu progreso se queda en este dispositivo. Tendrás que entrar de '
           'nuevo con ${SupabaseConfig.isConfigured ? 'tu correo' : 'la configuración del proyecto'}.',
@@ -146,7 +141,7 @@ class _SystemHeader extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Salir'),
+            child: const Text('Cerrar sesión'),
           ),
         ],
       ),
@@ -156,11 +151,12 @@ class _SystemHeader extends ConsumerWidget {
   }
 }
 
-/// Rutas disponibles para el shell.
 class AppRoutes {
   static const dashboard = '/';
   static const missions = '/misiones';
   static const goals = '/metas';
+  static const interview = '/entrevista';
+  static const reconfigure = '/entrevista/reconfigurar';
 
   static const branches = <({String path, Widget screen})>[
     (path: dashboard, screen: DashboardScreen()),

@@ -88,6 +88,17 @@ data ever leaves the device: each account gets its own SQLite file
   (`GoalReward`: 250 / 500 / 1,000 / 2,000 XP). `GoalActions.complete` pays the
   XP once (guarded in SQL), `reopen` revokes it, `delete` only for active goals.
   Goal XP does not touch the streak.
+- **Respaldo** (`features/backup/`): export writes one JSON file (`app`,
+  `format` = `backupFormat`, `schemaVersion`, `player` prefs and every table via
+  drift `toJson`) through `file_picker` `saveFile`; the user picks where (Drive,
+  Descargas, correo). Restore parses and validates first (rejects other apps and
+  newer `format`/`schemaVersion`), then replaces all tables inside one
+  transaction (any FK error rolls back and nothing changes), imports the player
+  prefs and sets the settled date to yesterday so the gap since the backup is
+  not charged. `last_backup_at` drives the "Respalda tu progreso" nudge on the
+  dashboard after 7 days. Any schema change must keep older backups
+  restorable: bump `backupFormat` and map old rows in `BackupRepository.parse`.
+  File access goes through `BackupFiles` (overridable in tests); no `dart:io`.
 - **Idioma**: all UI and catalog copy is Spanish from Mexico (celular,
   lagartijas, colación, audífonos, "platicar"); numbers use `formatNumber`
   (`10,000`), dates `formatDate` (`dd/mm/aaaa`). `MaterialApp` runs with
@@ -97,7 +108,7 @@ data ever leaves the device: each account gets its own SQLite file
 
 Flutter 3.47 / Dart 3.13 · Riverpod 3 · go_router (`StatefulShellRoute`) ·
 Drift (SQLite) · SharedPreferences (player settings) · flutter_animate ·
-bundled fonts (Orbitron display, Rajdhani body).
+file_picker (backup files) · bundled fonts (Orbitron display, Rajdhani body).
 
 ## Layout
 

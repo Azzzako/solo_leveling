@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/config/supabase_config.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/backup/presentation/screens/backup_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
 import '../../features/missions/presentation/providers/interview_provider.dart';
@@ -103,6 +104,14 @@ class _SystemHeader extends ConsumerWidget {
               onPressed: () => _startReconfigure(context, ref),
             ),
           ),
+          IconButton(
+            tooltip: 'Respaldo',
+            iconSize: 18,
+            visualDensity: VisualDensity.compact,
+            color: AppColors.textMuted,
+            icon: const Icon(Icons.save_alt),
+            onPressed: () => context.push(AppRoutes.backup),
+          ),
           Tooltip(
             message: 'Cerrar sesión',
             child: IconButton(
@@ -157,6 +166,7 @@ class AppRoutes {
   static const goals = '/metas';
   static const interview = '/entrevista';
   static const reconfigure = '/entrevista/reconfigurar';
+  static const backup = BackupScreen.path;
 
   static const branches = <({String path, Widget screen})>[
     (path: dashboard, screen: DashboardScreen()),

@@ -6,6 +6,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/db/app_database.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/system_widgets.dart';
+import '../../../backup/presentation/widgets/backup_nudge.dart';
 import '../../../missions/presentation/providers/missions_provider.dart';
 import '../../../missions/presentation/widgets/daily_mission_card.dart';
 import '../../../player/presentation/providers/player_provider.dart';
@@ -49,6 +50,10 @@ class DashboardScreen extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (e, s) => ErrorState(message: '$e'),
+        ),
+        BackupNudge(
+          hasProgress:
+              (stats.value?.totalXp ?? 0) != 0 || (summary?.completed ?? 0) > 0,
         ),
         if (settlement != null && settlement.penaltyApplied > 0) ...[
           const SizedBox(height: 12),

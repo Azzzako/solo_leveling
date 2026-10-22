@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/providers/auth_provider.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/backup/presentation/screens/backup_screen.dart';
 import '../features/missions/presentation/providers/interview_provider.dart';
 import '../features/missions/presentation/screens/interview_screen.dart';
 import 'shell/app_shell.dart';
@@ -45,6 +46,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.interview,
         builder: (context, state) => const InterviewScreen(reconfigure: false),
+      ),
+      GoRoute(
+        path: AppRoutes.backup,
+        builder: (context, state) => const BackupScreen(),
       ),
       GoRoute(
         path: AppRoutes.reconfigure,

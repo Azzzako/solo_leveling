@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +10,25 @@ import 'package:solo_leveling/src/core/db/app_database.dart';
 import 'package:solo_leveling/src/core/providers/core_providers.dart';
 import 'package:solo_leveling/src/features/auth/domain/auth_user.dart';
 import 'package:solo_leveling/src/features/auth/presentation/providers/auth_provider.dart';
+import 'package:solo_leveling/src/features/backup/presentation/providers/backup_provider.dart';
 
 class _StubAuth extends AuthController {
   @override
   Future<AuthUser?> build() async =>
       const AuthUser(id: 'test-user', email: 'cazador@test.dev');
+}
+
+class _MemoryFiles implements BackupFiles {
+  Uint8List? saved;
+
+  @override
+  Future<bool> save(String fileName, Uint8List bytes) async {
+    saved = bytes;
+    return true;
+  }
+
+  @override
+  Future<Uint8List?> pick() async => saved;
 }
 
 void main() {
@@ -22,6 +38,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     SharedPreferences.setMockInitialValues({});
     final db = AppDatabase.forTesting(NativeDatabase.memory());
+    final files = _MemoryFiles();
 
     Future<void> settle() async {
       for (var i = 0; i < 6; i++) {
@@ -37,6 +54,7 @@ void main() {
         overrides: [
           appDatabaseProvider.overrideWithValue(db),
           authProvider.overrideWith(_StubAuth.new),
+          backupFilesProvider.overrideWithValue(files),
         ],
         child: const SoloLevelingApp(),
       ),
@@ -97,6 +115,18 @@ void main() {
     await tester.tap(find.text('Cumplida'));
     await settle();
     await tester.tap(find.text('Sí, la cumplí'));
+    await settle();
+    expect(find.text('METAS CUMPLIDAS'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Respaldo'));
+    await settle();
+    expect(find.text('Tu progreso es tuyo'), findsOneWidget);
+    expect(find.text('Nunca has hecho un respaldo.'), findsOneWidget);
+    await tester.tap(find.text('EXPORTAR RESPALDO'));
+    await settle();
+    expect(files.saved, isNotNull);
+    expect(find.textContaining('Último respaldo: hoy'), findsOneWidget);
+    await tester.tap(find.byTooltip('Volver'));
     await settle();
     expect(find.text('METAS CUMPLIDAS'), findsOneWidget);
 

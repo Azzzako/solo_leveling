@@ -39,6 +39,7 @@ class SettingsStore {
   static const _kLastCompletion = 'hunter_last_completion';
   static const _kMissionSeed = 'daily_missions_seed_date';
   static const _kSettledDate = 'hunter_penalty_settled_date';
+  static const _kLastBackup = 'last_backup_at';
 
   static Future<SettingsStore> open(String userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -126,6 +127,48 @@ class SettingsStore {
 
   Future<void> writeLastSettledDate(DateTime date) =>
       _prefs.setInt(_key(_kSettledDate), date.millisecondsSinceEpoch);
+
+  DateTime? get lastBackupAt {
+    final millis = _prefs.getInt(_key(_kLastBackup));
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  Future<void> writeLastBackupAt(DateTime at) =>
+      _prefs.setInt(_key(_kLastBackup), at.millisecondsSinceEpoch);
+
+  Map<String, Object?> exportPlayer() {
+    final stats = readStats();
+    return {
+      'name': stats.name,
+      'totalXp': stats.totalXp,
+      'streak': stats.streak,
+      'lastCompletion': stats.lastCompletion?.millisecondsSinceEpoch,
+      'xpCurveVersion': _prefs.getInt(_key(_kXpCurveVersion)) ?? xpCurveVersion,
+    };
+  }
+
+  Future<void> importPlayer(
+    Map<String, Object?> player, {
+    required DateTime settledThrough,
+  }) async {
+    final last = player['lastCompletion'];
+    await writeStats(
+      PlayerStats(
+        name: player['name'] as String? ?? defaultName,
+        totalXp: player['totalXp'] as int? ?? 0,
+        streak: player['streak'] as int? ?? 0,
+        lastCompletion: last is int && last > 0
+            ? DateTime.fromMillisecondsSinceEpoch(last)
+            : null,
+      ),
+    );
+    await _prefs.setInt(
+      _key(_kXpCurveVersion),
+      player['xpCurveVersion'] as int? ?? xpCurveVersion,
+    );
+    await writeLastSettledDate(settledThrough);
+    await _prefs.remove(_key(_kMissionSeed));
+  }
 
   static int rescaleXp(int totalXp, {int from = 1}) {
     if (totalXp <= 0) return totalXp;

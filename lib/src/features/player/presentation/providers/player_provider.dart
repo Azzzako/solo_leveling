@@ -47,19 +47,20 @@ class PlayerController extends AsyncNotifier<PlayerStats> {
     );
   }
 
-  Future<PlayerStats> revokeXp(int amount) async {
+  Future<PlayerStats> revokeXp(int amount, {bool resetStreak = true}) async {
     if (amount <= 0) return state.value ?? await future;
     final stats = state.value ?? await future;
     final today = ref.read(todayProvider);
     final last = stats.lastCompletion;
     final streakStartedToday =
+        resetStreak &&
         stats.streak <= 1 &&
         last != null &&
         last.year == today.year &&
         last.month == today.month &&
         last.day == today.day;
     final next = stats.copyWith(
-      totalXp: (stats.totalXp - amount).clamp(0, 1 << 31),
+      totalXp: stats.totalXp - amount,
       streak: streakStartedToday ? 0 : stats.streak,
       lastCompletion: streakStartedToday ? null : last,
     );

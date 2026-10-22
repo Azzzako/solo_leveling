@@ -15,12 +15,14 @@ holográficos con brillo, oro para recompensas, HUD tipográfico. Ver
 
 | Regla | Dónde vive |
 | --- | --- |
-| **Stack fijo de 5 misiones, sin excepción y sin aleatoriedad**: ejercicio, agua, lectura, meditar, gatos | `domain/daily_stack.dart:fixedDailyStack` |
+| **Stack fijo de 7 misiones, sin excepción y sin aleatoriedad**: ejercicio, comer sano, 10 mil pasos, agua, lectura, meditar, gatos | `domain/daily_stack.dart:fixedDailyStack` |
+| **Comer sano** es un padre con 3 subtareas (desayuno, comida, cena) | `mealSubtasks` |
 | El set del día no se duplica; si las misiones del día no son el stack fijo se regeneran | `MissionRepository.generateDailyMissions` / `matchesFixedStack` |
-| XP por misión **plano** (no multiplica por `target`): 100 + 40 + 50 + 45 + 35 = **270 XP/día** | `daily_stack.dart:fixedDailyXpTotal` |
+| XP por misión **plano** (no multiplica por `target`): 100 + 80 + 90 + 40 + 50 + 45 + 35 = **440 XP/día** | `daily_stack.dart:fixedDailyXpTotal` |
+| **Castigo por no cumplir**: al abrir la app en un día nuevo se cobra, por cada día transcurrido sin liquidar, el XP de las misiones que quedaron sin completar. El XP puede quedar **negativo** (nivel 1 en deuda) | `MissionRepository.penaltyForDay` + `dailySettlementProvider` |
 | Ejercicio tiene **4 subtareas** (flexiones, abdominales, sentadillas, dominadas); la primaria (target 4) solo se completa al acabar las 4 | `MissionRepository.registerSubtaskProgress` |
 | Las repeticiones **escalan con el nivel**: `base + perLevel × (nivel - 1)`, congelado en `maxLevel` 30 | `SubtaskSpec.targetAt` |
-| Curva de nivel: `xpToNext(n) = 200 + (n - 1) * 75` | `player_stats.dart` |
+| Curva de nivel: `xpToNext(n) = 325 + (n - 1) * 122` | `player_stats.dart` |
 | Rangos por nivel: `E <4 · D <8 · C <14 · B <22 · A <32 · S <45 · SS <60 · SSS` | `HunterRank.fromLevel` |
 | Racha = días consecutivos con ≥1 misión completada; varias el mismo día no la suben | `PlayerStats.streakAfterCompletion` |
 | Una misión paga XP **una sola vez** (guarda en `mission_completions`) | `MissionRepository._settleProgress` |
@@ -33,15 +35,24 @@ holográficos con brillo, oro para recompensas, HUD tipográfico. Ver
 
 | Hito | Nivel | XP total | Días aprox. |
 | --- | --- | --- | --- |
-| Primer nivel | 2 | 200 | 1 |
-| Rango D | 8 | 3 075 | ~12 |
-| Rango C | 14 | 8 450 | ~31 |
-| Rango B | 22 | 19 950 | ~74 |
-| Rango A | 32 | 41 075 | ~152 |
+| Primer nivel | 2 | 325 | 1 |
+| Rango D | 8 | 4 883 | ~11 |
+| Rango C | 14 | 13 741 | ~31 |
+| Rango B | 22 | 32 445 | ~74 |
+| Rango A | 32 | 66 805 | ~152 |
+| Rango S | 45 | 129 712 | ~295 |
 
-Migración `xpCurveVersion = 2`: al abrir la app, el XP guardado se reescala
-(`SettingsStore.rescaleXp`, ~35 % del nivel anterior) conservando el progreso
-dentro del nivel. Marca `hunter_xp_curve_version` para no repetirlo.
+Con el castigo, saltarse un día completo cuesta **-440 XP**: dos semanas de
+descanso equivalen a perder el nivel que habrías alcanzado en ese tiempo.
+
+Migración `xpCurveVersion = 3`: al abrir la app, el XP guardado se reescala
+(`SettingsStore.rescaleXp(from: versiónAnterior)`) manteniendo el nivel y
+convirtiendo el progreso interno. v1→v2 además bajaba el nivel al 35 %.
+Marcador: `hunter_xp_curve_version`.
+
+Liquidación del castigo: marcador `hunter_penalty_settled_date`. La primera vez
+solo se liquida el día anterior (no hay línea base); a partir de ahí se cobra
+cada día pendiente, con un tope de 90 días de brecha.
 
 Si tocas estas funciones, el test correspondiente en `test/` es el contrato.
 
@@ -171,6 +182,9 @@ Las listas se actualizan solas: todo lee de `Stream` de Drift
 - `mission_subtasks` (v2): id, missionId→missions(id) `CASCADE`, title, target,
   progress, sortOrder, createdAt
 
+El castigo no añade tablas: los completions ya guardan `completedAt` y `xpEarned`,
+que es lo que necesita `penaltyForDay` para saber qué se hizo cada día.
+
 `beforeOpen` ejecuta `PRAGMA foreign_keys = ON`.
 Migración 1→2: `m.createTable(missionSubtasks)`. No se toca ninguna fila previa.
 
@@ -230,6 +244,15 @@ Tests de repositorio: `AppDatabase.forTesting(NativeDatabase.memory())` + `tearD
 ---
 
 ## 8. Estado actual y hacia dónde ir
+
+### Deshacer y castigo
+
+- ↺ por subtarea, ↺ por misión (y toque en la tarjeta completada): devuelven el
+  XP de lo deshecho.
+- `Reiniciar` en la cabecera: borra el día completo y devuelve su XP.
+- Al abrir la app en un día nuevo, `dailySettlementProvider` cobra el castigo de
+  cada día pendiente. El panel muestra `DEUDA n XP` en rojo mientras el total sea
+  negativo (nivel 1, barra a 0).
 
 ### Interacción de las subtareas
 

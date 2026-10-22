@@ -11,10 +11,11 @@ class SettingsStore {
   static const _kLastCompletion = 'hunter_last_completion';
   static const _kMissionSeed = 'daily_missions_seed_date';
   static const _kXpCurveVersion = 'hunter_xp_curve_version';
+  static const _kSettledDate = 'hunter_penalty_settled_date';
 
-  static const xpCurveVersion = 2;
+  static const xpCurveVersion = 3;
 
-  static const _levelRescaleRatio = 0.35;
+  static const _levelScaleByCurveVersion = <int, double>{1: 0.35, 2: 1, 3: 1};
 
   final SharedPreferences _prefs;
 
@@ -50,40 +51,62 @@ class SettingsStore {
       _prefs.setInt(_kMissionSeed, date.millisecondsSinceEpoch);
 
   Future<bool> applyXpCurveMigration() async {
-    if ((_prefs.getInt(_kXpCurveVersion) ?? 0) >= xpCurveVersion) return false;
+    final stored = _prefs.getInt(_kXpCurveVersion) ?? 0;
+    if (stored >= xpCurveVersion) return false;
     final stats = readStats();
-    await writeStats(stats.copyWith(totalXp: rescaleXp(stats.totalXp)));
+    await writeStats(
+      stats.copyWith(totalXp: rescaleXp(stats.totalXp, from: stored)),
+    );
     await _prefs.setInt(_kXpCurveVersion, xpCurveVersion);
     return true;
   }
 
-  static int rescaleXp(int totalXp) {
-    if (totalXp <= 0) return 0;
-    final oldLevel = _oldLevelForXp(totalXp);
-    final oldNeed = _oldXpToNext(oldLevel);
-    final oldBase = _oldTotalXpForLevel(oldLevel);
+  DateTime? get lastSettledDate {
+    final millis = _prefs.getInt(_kSettledDate);
+    return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  Future<void> writeLastSettledDate(DateTime date) =>
+      _prefs.setInt(_kSettledDate, date.millisecondsSinceEpoch);
+
+  static int rescaleXp(int totalXp, {int from = 1}) {
+    if (totalXp <= 0) return totalXp;
+    final oldNeed = xpToNextInCurve(
+      oldLevelForXp(totalXp, curve: from),
+      curve: from,
+    );
+    final oldLevel = oldLevelForXp(totalXp, curve: from);
+    final oldBase = totalXpForLevelInCurve(oldLevel, curve: from);
     final progress = oldNeed == 0 ? 0.0 : (totalXp - oldBase) / oldNeed;
-    final newLevel = (oldLevel * _levelRescaleRatio).round().clamp(1, 999);
+    final newLevel = (oldLevel * (_levelScaleByCurveVersion[from] ?? 1))
+        .round()
+        .clamp(1, 999);
     final newBase = PlayerStats.totalXpForLevel(newLevel);
     final newNeed = PlayerStats.xpToNext(newLevel);
     return newBase + (progress * newNeed).round();
   }
 
-  static int _oldXpToNext(int level) => 100 + (level - 1) * 50;
+  static int xpToNextInCurve(int level, {required int curve}) =>
+      switch (curve) {
+        1 => 100 + (level - 1) * 50,
+        2 => 200 + (level - 1) * 75,
+        _ => PlayerStats.xpToNext(level),
+      };
 
-  static int _oldTotalXpForLevel(int level) {
+  static int totalXpForLevelInCurve(int level, {required int curve}) {
     var total = 0;
     for (var i = 1; i < level; i++) {
-      total += _oldXpToNext(i);
+      total += xpToNextInCurve(i, curve: curve);
     }
     return total;
   }
 
-  static int _oldLevelForXp(int xp) {
+  static int oldLevelForXp(int xp, {required int curve}) {
     var level = 1;
     var remaining = xp;
-    while (remaining >= _oldXpToNext(level)) {
-      remaining -= _oldXpToNext(level);
+    if (remaining <= 0) return level;
+    while (remaining >= xpToNextInCurve(level, curve: curve)) {
+      remaining -= xpToNextInCurve(level, curve: curve);
       level++;
     }
     return level;

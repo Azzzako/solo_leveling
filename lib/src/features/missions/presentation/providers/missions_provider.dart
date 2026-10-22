@@ -86,6 +86,63 @@ final ensureDailyMissionsProvider = FutureProvider<void>((ref) async {
   await repository.generateDailyMissions(day, level: stats.level);
   await settings.writeDailyMissionsSeed(day);
 });
+const maxSettledGapDays = 90;
+
+class DailySettlement {
+  const DailySettlement({
+    required this.daysSettled,
+    required this.penaltyApplied,
+  });
+
+  final int daysSettled;
+  final int penaltyApplied;
+}
+
+final dailySettlementProvider = FutureProvider<DailySettlement>((ref) async {
+  final settings = await ref.watch(settingsStoreProvider.future);
+  final repository = ref.watch(missionRepositoryProvider);
+  final today = ref.watch(todayProvider);
+
+  final lastSettled = settings.lastSettledDate;
+  final first = lastSettled == null
+      ? DateTime(
+          today.year,
+          today.month,
+          today.day,
+        ).subtract(const Duration(days: 1))
+      : DateTime(
+          lastSettled.year,
+          lastSettled.month,
+          lastSettled.day,
+        ).add(const Duration(days: 1));
+
+  var day = first;
+  var daysSettled = 0;
+  var penalty = 0;
+  while (day.isBefore(today) && daysSettled < maxSettledGapDays) {
+    final dayPenalty = await repository.penaltyForDay(day);
+    if (dayPenalty > 0) {
+      await ref
+          .read(playerProvider.notifier)
+          .revokeXp(dayPenalty, resetStreak: false);
+    }
+    penalty += dayPenalty;
+    daysSettled++;
+    day = day.add(const Duration(days: 1));
+  }
+
+  final settledThrough = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).subtract(const Duration(days: 1));
+  if (daysSettled > 0 || lastSettled == null) {
+    await settings.writeLastSettledDate(settledThrough);
+  }
+
+  return DailySettlement(daysSettled: daysSettled, penaltyApplied: penalty);
+});
+
 final registerMissionProgressProvider = Provider<MissionProgressAction>(
   (ref) => MissionProgressAction(ref),
 );

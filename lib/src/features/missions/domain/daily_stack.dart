@@ -44,6 +44,12 @@ const exerciseSubtasks = <SubtaskSpec>[
   SubtaskSpec(title: 'Dominadas', base: 10, perLevel: 1),
 ];
 
+const mealSubtasks = <SubtaskSpec>[
+  SubtaskSpec(title: 'Desayuno', base: 1),
+  SubtaskSpec(title: 'Comida', base: 1),
+  SubtaskSpec(title: 'Cena', base: 1),
+];
+
 const fixedDailyStack = <FixedMissionSpec>[
   FixedMissionSpec(
     title: 'Hacer ejercicio',
@@ -52,6 +58,20 @@ const fixedDailyStack = <FixedMissionSpec>[
     difficulty: MissionDifficulty.medium,
     xpReward: 100,
     subtasks: exerciseSubtasks,
+  ),
+  FixedMissionSpec(
+    title: 'Comer sano',
+    description: 'Las tres comidas del día. Cierra al completar cada una.',
+    difficulty: MissionDifficulty.medium,
+    xpReward: 80,
+    subtasks: mealSubtasks,
+  ),
+  FixedMissionSpec(
+    title: 'Camina 10 mil pasos',
+    description: 'Camina lo suficiente para desbloquear el siguiente rango.',
+    difficulty: MissionDifficulty.easy,
+    xpReward: 90,
+    target: 10000,
   ),
   FixedMissionSpec(
     title: 'Toma 2 litros de agua',
@@ -85,4 +105,4 @@ const fixedDailyStack = <FixedMissionSpec>[
 int get fixedDailyXpTotal =>
     fixedDailyStack.fold(0, (sum, spec) => sum + spec.xpReward);
 
-const fixedDailyMissionCount = 5;
+const fixedDailyMissionCount = 7;

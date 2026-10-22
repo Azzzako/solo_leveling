@@ -11,10 +11,10 @@ void main() {
       expect(stats.levelProgress, 0);
     });
 
-    test('el primer nivel pide 200 XP', () {
-      expect(PlayerStats.xpToNext(1), 200);
-      expect(PlayerStats.xpToNext(10), 875);
-      expect(PlayerStats.xpToNext(50), 3875);
+    test('la curva exige 325 XP en el primer nivel y crece 122 por nivel', () {
+      expect(PlayerStats.xpToNext(1), 325);
+      expect(PlayerStats.xpToNext(10), 1423);
+      expect(PlayerStats.xpToNext(50), 6303);
     });
 
     test('acumula niveles al sumar XP', () {
@@ -30,34 +30,56 @@ void main() {
 
     test('el progreso del nivel es una fracción entre 0 y 1', () {
       final base = PlayerStats.totalXpForLevel(3);
-      final stats = PlayerStats(name: 'A', totalXp: base + 150, streak: 0);
+      final stats = PlayerStats(name: 'A', totalXp: base + 240, streak: 0);
 
       expect(stats.level, 3);
-      expect(stats.xpIntoLevel, 150);
-      expect(stats.xpNeededForNext, 350);
-      expect(stats.levelProgress, closeTo(0.4286, 0.001));
+      expect(stats.xpIntoLevel, 240);
+      expect(stats.xpNeededForNext, 569);
+      expect(stats.levelProgress, closeTo(0.4217, 0.001));
     });
 
-    test('un día completo no sube más de un nivel', () {
-      const dailyXp = 270;
+    test('un día completo (440 XP) sube un nivel y deja progreso', () {
+      const dailyXp = 440;
       final stats = PlayerStats(name: 'A', totalXp: dailyXp, streak: 0);
 
       expect(stats.level, 2);
-      expect(stats.xpIntoLevel, 70);
+      expect(stats.xpIntoLevel, 115);
     });
 
-    test('el ascenso es lento: C hasta el 13, S hasta el 44', () {
+    test('el ascenso es lento: C en un mes, S en diez meses', () {
       expect(HunterRank.fromLevel(13), HunterRank.c);
       expect(HunterRank.fromLevel(21), HunterRank.b);
       expect(HunterRank.fromLevel(31), HunterRank.a);
       expect(HunterRank.fromLevel(44), HunterRank.s);
 
-      final rankBLevel = PlayerStats.totalXpForLevel(14);
+      const dailyXp = 440;
+      final rankCLevel = PlayerStats.totalXpForLevel(14);
       final rankSLevel = PlayerStats.totalXpForLevel(45);
-      const dailyXp = 270;
 
-      expect((rankBLevel / dailyXp).round(), greaterThanOrEqualTo(30));
-      expect((rankSLevel / dailyXp).round(), greaterThan(250));
+      expect((rankCLevel / dailyXp).round(), inInclusiveRange(28, 34));
+      expect((rankSLevel / dailyXp).round(), inInclusiveRange(285, 300));
+    });
+
+    test('con XP negativo se queda en nivel 1 con deuda', () {
+      final stats = PlayerStats(name: 'A', totalXp: -900, streak: 3);
+
+      expect(stats.level, 1);
+      expect(stats.inDebt, isTrue);
+      expect(stats.xpIntoLevel, -900);
+      expect(stats.rank, HunterRank.e);
+      expect(PlayerStats.levelForXp(-1), 1);
+      expect(PlayerStats.levelForXp(0), 1);
+    });
+
+    test('recuperar la deuda devuelve al nivel 1 sin progreso falso', () {
+      final inDebt = PlayerStats(name: 'A', totalXp: -500, streak: 1);
+      final recovered = PlayerStats(name: 'A', totalXp: 100, streak: 1);
+
+      expect(inDebt.level, 1);
+      expect(inDebt.inDebt, isTrue);
+      expect(recovered.level, 1);
+      expect(recovered.inDebt, isFalse);
+      expect(recovered.xpIntoLevel, 100);
     });
   });
 

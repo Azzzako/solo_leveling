@@ -14,6 +14,7 @@ class MissionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(ensureDailyMissionsProvider);
+    ref.watch(dailySettlementProvider);
     final missions = ref.watch(dailyMissionsProvider);
     final completions = ref.watch(todayCompletionsProvider);
     final subtasks = ref.watch(todaySubtasksProvider);

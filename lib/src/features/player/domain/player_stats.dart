@@ -55,6 +55,8 @@ class PlayerStats {
 
   HunterRank get rank => HunterRank.fromLevel(level);
 
+  bool get inDebt => totalXp < 0;
+
   int get xpIntoLevel => totalXp - totalXpForLevel(level);
 
   int get xpNeededForNext => xpToNext(level);
@@ -62,7 +64,7 @@ class PlayerStats {
   double get levelProgress =>
       xpNeededForNext == 0 ? 1 : xpIntoLevel / xpNeededForNext;
 
-  static int xpToNext(int level) => 200 + (level - 1) * 75;
+  static int xpToNext(int level) => 325 + (level - 1) * 122;
 
   static int totalXpForLevel(int level) {
     var total = 0;
@@ -75,6 +77,7 @@ class PlayerStats {
   static int levelForXp(int xp) {
     var level = 1;
     var remaining = xp;
+    if (remaining <= 0) return level;
     while (remaining >= xpToNext(level)) {
       remaining -= xpToNext(level);
       level++;

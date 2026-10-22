@@ -5,18 +5,26 @@ their own phone. No accounts, no backend, no telemetry, no network calls.
 
 ## Product
 
-- **Misiones diarias**: a **fixed** set of 5 missions, no randomness, no pool:
-  exercise, 2L water, reading, meditation, cats (`fixedDailyStack` in
-  `features/missions/domain/daily_stack.dart`). Same day = same set, never
-  duplicated; if the day's rows are not the fixed stack they are rebuilt.
-- **Subtasks**: exercise has 4 subtasks (pushups, abs, squats, pullups); the
-  parent mission (target = subtask count) only completes when all of them are
-  done. Reps scale with level: `base + perLevel × (level - 1)`, frozen at 30.
+- **Misiones diarias**: a **fixed** set of 7 missions, no randomness, no pool:
+  exercise, eat healthy, 10k steps, 2L water, reading, meditation, cats
+  (`fixedDailyStack` in `features/missions/domain/daily_stack.dart`). Same day =
+  same set, never duplicated; if the day's rows are not the fixed stack they are
+  rebuilt.
+- **Subtasks**: exercise has 4 (pushups, abs, squats, pullups) and "comer sano"
+  has 3 (breakfast, lunch, dinner); a parent mission (target = subtask count)
+  only completes when all of them are done. Exercise reps scale with level:
+  `base + perLevel × (level - 1)`, frozen at 30.
 - **XP / nivel / rango**: XP per mission is **flat** (no `baseXp × target`),
-  270 XP/day for the whole stack. Levels follow
-  `xpToNext(n) = 200 + (n - 1) * 75`; ranks `E → D → C → B → A → S → SS → SSS`
+  440 XP/day for the whole stack. Levels follow
+  `xpToNext(n) = 325 + (n - 1) * 122`; ranks `E → D → C → B → A → S → SS → SSS`
   by level (`<4, <8, <14, <22, <32, <45, <60, else`). Changing the curve means
   bumping `SettingsStore.xpCurveVersion` and extending `rescaleXp`.
+- **Castigo por no cumplir**: `dailySettlementProvider` charges, for every
+  unsettled past day, the XP of the missions left undone (`penaltyForDay`) via
+  `PlayerController.revokeXp`. XP can go **negative** (level 1, `inDebt` true,
+  debt shown in red). Marker: `hunter_penalty_settled_date`; gap capped at 90
+  days. Touching the streak on settlement is off (`resetStreak: false`): a day
+  with no completion already breaks it.
 - **Racha (streak)**: consecutive days with at least one completed mission.
   Several missions the same day do not raise it.
 - **Deshacer**: `MissionRepository.resetSubtask` (one series, recomputes the

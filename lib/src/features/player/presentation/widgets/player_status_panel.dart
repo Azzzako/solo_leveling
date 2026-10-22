@@ -22,8 +22,10 @@ class PlayerStatusPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final rank = stats.rank;
     return SystemPanel(
-      glow: true,
-      borderColor: rank.color.withValues(alpha: 0.6),
+      glow: !stats.inDebt,
+      borderColor: (stats.inDebt ? AppColors.danger : rank.color).withValues(
+        alpha: 0.6,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -71,8 +73,13 @@ class PlayerStatusPanel extends StatelessWidget {
                     XpBar(progress: stats.levelProgress),
                     const SizedBox(height: 6),
                     Text(
-                      '${stats.xpIntoLevel} / ${stats.xpNeededForNext} XP',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      stats.inDebt
+                          ? 'DEUDA ${stats.totalXp.abs()} XP'
+                          : '${stats.xpIntoLevel} / ${stats.xpNeededForNext} XP',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: stats.inDebt ? AppColors.danger : null,
+                        fontWeight: stats.inDebt ? FontWeight.w700 : null,
+                      ),
                     ),
                   ],
                 ),
@@ -83,9 +90,9 @@ class PlayerStatusPanel extends StatelessWidget {
           Row(
             children: [
               _MiniStat(
-                icon: Icons.bolt,
+                icon: stats.inDebt ? Icons.trending_down : Icons.bolt,
                 label: '${stats.totalXp} XP',
-                color: AppColors.systemGlow,
+                color: stats.inDebt ? AppColors.danger : AppColors.systemGlow,
               ),
               const SizedBox(width: 8),
               _MiniStat(

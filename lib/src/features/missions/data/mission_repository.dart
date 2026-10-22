@@ -286,6 +286,26 @@ class MissionRepository {
     }
   }
 
+  Future<int> penaltyForDay(DateTime day) async {
+    final missions = await dailyMissionsOn(day);
+    if (missions.isEmpty) return 0;
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final completions =
+        await (_db.select(_db.missionCompletions)..where(
+              (c) =>
+                  c.completedAt.isBiggerOrEqualValue(start) &
+                  c.completedAt.isSmallerThanValue(end),
+            ))
+            .get();
+    final doneIds = {for (final c in completions) c.missionId};
+    var penalty = 0;
+    for (final mission in missions) {
+      if (!doneIds.contains(mission.id)) penalty += mission.xpReward;
+    }
+    return penalty;
+  }
+
   Future<ResetOutcome> resetMission(String missionId) async {
     final mission = await _missionById(missionId);
     if (mission == null) {

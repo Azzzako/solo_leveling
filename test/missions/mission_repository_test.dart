@@ -19,7 +19,7 @@ void main() {
   group('generateDailyMissions', () {
     final day = DateTime(2026, 10, 22);
 
-    test('crea siempre el mismo stack fijo de 5 misiones', () async {
+    test('crea siempre el mismo stack fijo de 7 misiones', () async {
       final created = await repository.generateDailyMissions(day, level: 1);
       expect(created, fixedDailyStack.length);
 
@@ -29,7 +29,7 @@ void main() {
         missions.map((m) => m.xpReward),
         fixedDailyStack.map((s) => s.xpReward),
       );
-      expect(missions.fold(0, (sum, m) => sum + m.xpReward), 270);
+      expect(missions.fold(0, (sum, m) => sum + m.xpReward), 440);
     });
 
     test('el set es idéntico en cualquier día', () async {
@@ -51,7 +51,7 @@ void main() {
       final second = await repository.generateDailyMissions(day, level: 1);
 
       expect(second, 0);
-      expect(await repository.dailyMissionsOn(day), hasLength(5));
+      expect(await repository.dailyMissionsOn(day), hasLength(7));
     });
 
     test('la misión de ejercicio nace con 4 subtareas y target 4', () async {
@@ -212,7 +212,7 @@ void main() {
 
     test('las misiones sin subtareas se completan con un toque', () async {
       await repository.generateDailyMissions(day, level: 1);
-      final water = (await repository.dailyMissionsOn(day))[1];
+      final water = (await repository.dailyMissionsOn(day))[3];
       expect(water.title, 'Toma 2 litros de agua');
       expect(await repository.subtasksOf(water.id), isEmpty);
 
@@ -250,7 +250,7 @@ void main() {
     test('clearDailyMissions borra misiones y subtareas del día', () async {
       await repository.generateDailyMissions(day, level: 1);
       final before = await repository.watchSubtasksForDay(day).first;
-      expect(before, hasLength(4));
+      expect(before, hasLength(7));
 
       await repository.clearDailyMissions(day);
 
@@ -310,13 +310,13 @@ void main() {
       for (final s in await repository.subtasksOf(exercise.id)) {
         await repository.registerSubtaskProgress(s.id, amount: s.target);
       }
-      await repository.registerProgress(missions[1].id, amount: 2);
+      await repository.registerProgress(missions[3].id, amount: 2);
 
-      final outcome = await repository.resetMission(missions[1].id);
+      final outcome = await repository.resetMission(missions[3].id);
 
       expect(outcome.xpRefunded, 40);
       final after = await repository.dailyMissionsOn(day);
-      expect(after[1].progress, 0);
+      expect(after[3].progress, 0);
       expect(after.first.progress, 4);
       expect(
         (await repository.subtasksOf(exercise.id))
@@ -356,11 +356,11 @@ void main() {
       for (final s in subtasks) {
         await repository.registerSubtaskProgress(s.id, amount: s.target);
       }
-      await repository.registerProgress(missions[1].id, amount: 2);
+      await repository.registerProgress(missions[3].id, amount: 2);
 
       final result = await repository.resetDay(day);
 
-      expect(result.missionsCleared, 5);
+      expect(result.missionsCleared, 7);
       expect(result.completionsRemoved, 2);
       expect(result.xpRefunded, 140);
       expect(await repository.watchCompletionsOn(day).first, isEmpty);
@@ -378,32 +378,77 @@ void main() {
     test('el stack sigue ahí y se puede volver a completar', () async {
       await repository.generateDailyMissions(day, level: 1);
       final missions = await repository.dailyMissionsOn(day);
-      await repository.registerProgress(missions[1].id, amount: 2);
+      await repository.registerProgress(missions[3].id, amount: 2);
       await repository.resetDay(day);
 
       final again = await repository.registerProgress(
-        missions[1].id,
+        missions[3].id,
         amount: 2,
       );
       expect(again.missionCompleted, isTrue);
       expect(again.xpEarned, 40);
-      expect(await repository.dailyMissionsOn(day), hasLength(5));
+      expect(await repository.dailyMissionsOn(day), hasLength(7));
     });
 
     test('no toca las misiones de otros días', () async {
       final yesterday = day.subtract(const Duration(days: 1));
       await repository.generateDailyMissions(yesterday, level: 1);
       final old = await repository.dailyMissionsOn(yesterday);
-      await repository.registerProgress(old[2].id, amount: 10);
+      await repository.registerProgress(old[6].id, amount: 10);
       await repository.generateDailyMissions(day, level: 1);
 
       final result = await repository.resetDay(day);
 
       expect(result.completionsRemoved, 1);
-      expect(result.xpRefunded, 50);
+      expect(result.xpRefunded, 35);
       final untouched = await repository.dailyMissionsOn(yesterday);
-      expect(untouched, hasLength(5));
-      expect(untouched[2].progress, 10);
+      expect(untouched, hasLength(7));
+      expect(untouched[6].progress, 1);
+    });
+  });
+
+  group('penaltyForDay', () {
+    final day = DateTime(2026, 10, 22);
+
+    test('un día sin nada hecho cuesta todo el stack', () async {
+      await repository.generateDailyMissions(day, level: 1);
+
+      expect(await repository.penaltyForDay(day), 440);
+    });
+
+    test('solo penaliza las misiones sin completar', () async {
+      await repository.generateDailyMissions(day, level: 1);
+      final missions = await repository.dailyMissionsOn(day);
+      await repository.registerProgress(missions[3].id, amount: 2);
+      await repository.registerProgress(missions[6].id);
+
+      expect(await repository.penaltyForDay(day), 440 - 40 - 35);
+    });
+
+    test(
+      'el ejercicio cuenta como hecho solo si cierra las 4 series',
+      () async {
+        await repository.generateDailyMissions(day, level: 1);
+        final exercise = (await repository.dailyMissionsOn(day)).first;
+        final subtasks = await repository.subtasksOf(exercise.id);
+        await repository.registerSubtaskProgress(subtasks.first.id, amount: 50);
+
+        expect(await repository.penaltyForDay(day), 440);
+      },
+    );
+
+    test('cerrar las 4 series quita el ejercicio de la penalty', () async {
+      await repository.generateDailyMissions(day, level: 1);
+      final exercise = (await repository.dailyMissionsOn(day)).first;
+      for (final s in await repository.subtasksOf(exercise.id)) {
+        await repository.registerSubtaskProgress(s.id, amount: s.target);
+      }
+
+      expect(await repository.penaltyForDay(day), 440 - 100);
+    });
+
+    test('un día sin misiones no penaliza', () async {
+      expect(await repository.penaltyForDay(day), 0);
     });
   });
 

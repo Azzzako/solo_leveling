@@ -4,10 +4,12 @@ import 'package:solo_leveling/src/features/missions/domain/mission_difficulty.da
 
 void main() {
   group('fixedDailyStack', () {
-    test('son exactamente 5 misiones y en orden fijo', () {
+    test('son exactamente 7 misiones y en orden fijo', () {
       expect(fixedDailyStack, hasLength(fixedDailyMissionCount));
       expect(fixedDailyStack.map((s) => s.title), [
         'Hacer ejercicio',
+        'Comer sano',
+        'Camina 10 mil pasos',
         'Toma 2 litros de agua',
         'Lee 10 páginas',
         'Medita 10 minutos',
@@ -15,15 +17,27 @@ void main() {
       ]);
     });
 
-    test('solo la misión de ejercicio tiene subtareas', () {
+    test('ejercicio y comida tienen subtareas, el resto no', () {
       final withSubtasks = fixedDailyStack.where((s) => s.hasSubtasks);
-      expect(withSubtasks.map((s) => s.title), ['Hacer ejercicio']);
-      expect(withSubtasks.first.subtasks, hasLength(4));
+      expect(withSubtasks.map((s) => s.title), [
+        'Hacer ejercicio',
+        'Comer sano',
+      ]);
+      expect(fixedDailyStack.first.subtasks, hasLength(4));
+      expect(fixedDailyStack[1].subtasks, hasLength(3));
+      expect(mealSubtasks.map((s) => s.title), ['Desayuno', 'Comida', 'Cena']);
     });
 
-    test('el stack paga 270 XP al día', () {
-      expect(fixedDailyXpTotal, 270);
+    test('el stack paga 440 XP al día', () {
+      expect(fixedDailyXpTotal, 440);
       expect(fixedDailyStack.first.xpReward, 100);
+      expect(fixedDailyStack[1].xpReward, 80);
+      expect(fixedDailyStack[2].xpReward, 90);
+    });
+
+    test('las comidas valen 1 cada una y no escalan con el nivel', () {
+      expect(mealSubtasks.every((s) => s.targetAt(1) == 1), isTrue);
+      expect(mealSubtasks.every((s) => s.targetAt(40) == 1), isTrue);
     });
 
     test('cada misión tiene título, descripción y XP positivo', () {

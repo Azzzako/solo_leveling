@@ -16,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(ensureDailyMissionsProvider);
+    ref.watch(dailySettlementProvider);
     final stats = ref.watch(playerProvider);
     final summary = ref.watch(dailySummaryProvider);
     final missions = ref.watch(dailyMissionsProvider);
@@ -52,8 +53,12 @@ class DashboardScreen extends ConsumerWidget {
             Expanded(
               child: StatTile(
                 label: 'XP HOY',
-                value: '+${summary.value?.xp ?? 0}',
-                color: AppColors.systemGlow,
+                value:
+                    '${(summary.value?.xp ?? 0) >= 0 ? '+' : ''}'
+                    '${summary.value?.xp ?? 0}',
+                color: (summary.value?.xp ?? 0) < 0
+                    ? AppColors.danger
+                    : AppColors.systemGlow,
               ),
             ),
             const SizedBox(width: 10),

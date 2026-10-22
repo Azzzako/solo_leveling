@@ -71,7 +71,8 @@ void main() {
         'hunter_name': 'Cazador',
         'hunter_xp_curve_version': 2,
       });
-      final store = await SettingsStore.open();
+
+      final store = await SettingsStore.open('user-1');
 
       expect(await store.applyXpCurveMigration(), isTrue);
 
@@ -88,7 +89,7 @@ void main() {
         'hunter_total_xp': -880,
         'hunter_xp_curve_version': 2,
       });
-      final store = await SettingsStore.open();
+      final store = await SettingsStore.open('user-1');
 
       expect(await store.applyXpCurveMigration(), isTrue);
       expect(store.readStats().totalXp, -880);
@@ -96,10 +97,53 @@ void main() {
     });
   });
 
+  group('aislamiento por usuario', () {
+    test('cada usuario tiene su propio XP, nombre y racha', () async {
+      SharedPreferences.setMockInitialValues({});
+      final one = await SettingsStore.open('user-a');
+      final two = await SettingsStore.open('user-b');
+
+      await one.writeStats(PlayerStats(name: 'A', totalXp: 900, streak: 5));
+      await two.writeStats(PlayerStats(name: 'B', totalXp: -200, streak: 0));
+
+      expect(one.readStats().name, 'A');
+      expect(one.readStats().totalXp, 900);
+      expect(one.readStats().streak, 5);
+      expect(two.readStats().name, 'B');
+      expect(two.readStats().totalXp, -200);
+      expect(two.readStats().streak, 0);
+    });
+
+    test('la curva y la liquidación también están aisladas', () async {
+      SharedPreferences.setMockInitialValues({});
+      final one = await SettingsStore.open('user-a');
+      final two = await SettingsStore.open('user-b');
+
+      expect(await one.applyXpCurveMigration(), isTrue);
+      expect(await two.applyXpCurveMigration(), isTrue);
+      await one.writeLastSettledDate(DateTime(2026, 10, 21));
+
+      expect(one.lastSettledDate, DateTime(2026, 10, 21));
+      expect(two.lastSettledDate, isNull);
+      expect(await one.applyXpCurveMigration(), isFalse);
+      expect(await two.applyXpCurveMigration(), isFalse);
+    });
+
+    test('el progreso antiguo solo se reclama una vez', () async {
+      SharedPreferences.setMockInitialValues({'hunter_total_xp': 4400});
+      final first = await SettingsStore.open('user-a');
+
+      expect(first.readStats().totalXp, 4400);
+
+      final second = await SettingsStore.open('user-b');
+      expect(second.readStats().totalXp, 0);
+    });
+  });
+
   group('fecha de liquidación del castigo', () {
     test('guarda y lee el último día liquidado', () async {
       SharedPreferences.setMockInitialValues({});
-      final store = await SettingsStore.open();
+      final store = await SettingsStore.open('user-1');
       expect(store.lastSettledDate, isNull);
 
       final settled = DateTime(2026, 10, 21);
@@ -112,7 +156,7 @@ void main() {
   group('seed de misiones diarias', () {
     test('guarda y lee la fecha de generación', () async {
       SharedPreferences.setMockInitialValues({});
-      final store = await SettingsStore.open();
+      final store = await SettingsStore.open('user-1');
       expect(store.dailyMissionsSeedDate, isNull);
 
       final day = DateTime(2026, 10, 22);

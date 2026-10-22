@@ -4,8 +4,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solo_leveling/src/core/db/app_database.dart';
 import 'package:solo_leveling/src/core/providers/core_providers.dart';
+import 'package:solo_leveling/src/features/auth/domain/auth_user.dart';
+import 'package:solo_leveling/src/features/auth/presentation/providers/auth_provider.dart';
+import 'package:solo_leveling/src/features/missions/domain/interview_catalog.dart';
 import 'package:solo_leveling/src/features/missions/presentation/providers/missions_provider.dart';
 import 'package:solo_leveling/src/features/player/presentation/providers/player_provider.dart';
+
+Future<List<Mission>> _completedWithoutSubtasks(
+  ProviderContainer container,
+  DateTime day,
+) async {
+  final repository = container.read(missionRepositoryProvider);
+  final done = <Mission>[];
+  for (final mission in await repository.dailyMissionsOn(day)) {
+    final subtasks = await repository.subtasksOf(mission.id);
+    if (subtasks.isNotEmpty) continue;
+    done.add(mission);
+  }
+  return done;
+}
+
+class _StubAuth extends AuthController {
+  @override
+  Future<AuthUser?> build() async =>
+      const AuthUser(id: 'test-user', email: 'cazador@test.dev');
+}
 
 void main() {
   late AppDatabase db;
@@ -15,7 +38,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     db = AppDatabase.forTesting(NativeDatabase.memory());
     container = ProviderContainer(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        authProvider.overrideWith(_StubAuth.new),
+      ],
     );
   });
 
@@ -79,8 +105,8 @@ void main() {
       final settlement = await settle();
 
       expect(settlement.daysSettled, 1);
-      expect(settlement.penaltyApplied, 440);
-      expect(container.read(playerProvider).value!.totalXp, -440);
+      expect(settlement.penaltyApplied, dailyStackXp);
+      expect(container.read(playerProvider).value!.totalXp, -dailyStackXp);
       expect(container.read(playerProvider).value!.inDebt, isTrue);
       expect(container.read(playerProvider).value!.level, 1);
     });
@@ -121,8 +147,12 @@ void main() {
 
       final settlement = await settle();
 
-      expect(settlement.penaltyApplied, 100 + 80);
-      expect(container.read(playerProvider).value!.totalXp, -(100 + 80));
+      final completed = await _completedWithoutSubtasks(container, yesterday);
+      final expected =
+          dailyStackXp -
+          completed.fold<int>(0, (sum, mission) => sum + mission.xpReward);
+      expect(settlement.penaltyApplied, expected);
+      expect(container.read(playerProvider).value!.totalXp, -expected);
     });
 
     test('no cobra dos veces el mismo día', () async {

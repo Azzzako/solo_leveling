@@ -1,9 +1,14 @@
 # Solo Leveling
 
-App Flutter personal, **100% offline**. Un solo usuario (el dueño), instalada en
-su propio teléfono. Sin cuentas, sin backend, sin telemetría, sin red. Los datos
-viven en el SQLite del dispositivo; el estado del "cazador" (XP, racha, nombre)
-en `SharedPreferences`.
+App Flutter personal para uno mismo (el dueño), instalada en su propio teléfono.
+**Login con Supabase (solo identidad)**: el único uso de la red es
+autenticarse. Los datos de cada cuenta (misiones, XP, racha, metas) viven en un
+SQLite propio dentro del dispositivo; el estado del "cazador" en
+`SharedPreferences` con claves por usuario. Sin telemetría y sin subir nada a la
+nube.
+
+Con la sesión guardada la app funciona **sin conexión**: solo hace falta red la
+primera vez o al cambiar de cuenta. Ver [`docs/supabase.md`](docs/supabase.md).
 
 Estética: *system window* de Solo Leveling — fondo casi negro, paneles azules
 holográficos con brillo, oro para recompensas, HUD tipográfico. Ver
@@ -15,10 +20,12 @@ holográficos con brillo, oro para recompensas, HUD tipográfico. Ver
 
 | Regla | Dónde vive |
 | --- | --- |
-| **Stack fijo de 7 misiones, sin excepción y sin aleatoriedad**: ejercicio, comer sano, 10 mil pasos, agua, lectura, meditar, gatos | `domain/daily_stack.dart:fixedDailyStack` |
-| **Comer sano** es un padre con 3 subtareas (desayuno, comida, cena) | `mealSubtasks` |
+| **Stack fijo de 7 misiones por usuario**, sin excepción ni aleatoriedad: sale de su entrevista | `domain/interview_catalog.dart` + tabla `stack_templates` |
+| La **entrevista** pregunta la meta (físico · productividad · enfoque · relaciones) y 7 preguntas propias de esa meta; la última construye el stack | `interview_screen.dart`, `buildStack()` |
+| Una pregunta por meta es de **ajuste** (intensidad, duración) y modifica la misión anterior en vez de añadir una | `InterviewOption.scalePrevious` |
+| Todas las combinaciones dan **exactamente 420 XP/día** y 7 títulos distintos | `normalizeXp`, `_disambiguate` |
 | El set del día no se duplica; si las misiones del día no son el stack fijo se regeneran | `MissionRepository.generateDailyMissions` / `matchesFixedStack` |
-| XP por misión **plano** (no multiplica por `target`): 100 + 80 + 90 + 40 + 50 + 45 + 35 = **440 XP/día** | `daily_stack.dart:fixedDailyXpTotal` |
+| XP por misión **plano** (no multiplica por `target`) y repartido a **420 XP/día** sea cual sea la meta | `interview_catalog.dart:dailyStackXp` |
 | **Castigo por no cumplir**: al abrir la app en un día nuevo se cobra, por cada día transcurrido sin liquidar, el XP de las misiones que quedaron sin completar. El XP puede quedar **negativo** (nivel 1 en deuda) | `MissionRepository.penaltyForDay` + `dailySettlementProvider` |
 | Ejercicio tiene **4 subtareas** (flexiones, abdominales, sentadillas, dominadas); la primaria (target 4) solo se completa al acabar las 4 | `MissionRepository.registerSubtaskProgress` |
 | Las repeticiones **escalan con el nivel**: `base + perLevel × (nivel - 1)`, congelado en `maxLevel` 30 | `SubtaskSpec.targetAt` |
@@ -36,13 +43,13 @@ holográficos con brillo, oro para recompensas, HUD tipográfico. Ver
 | Hito | Nivel | XP total | Días aprox. |
 | --- | --- | --- | --- |
 | Primer nivel | 2 | 325 | 1 |
-| Rango D | 8 | 4 883 | ~11 |
-| Rango C | 14 | 13 741 | ~31 |
-| Rango B | 22 | 32 445 | ~74 |
-| Rango A | 32 | 66 805 | ~152 |
-| Rango S | 45 | 129 712 | ~295 |
+| Rango D | 8 | 4 883 | ~12 |
+| Rango C | 14 | 13 741 | ~33 |
+| Rango B | 22 | 32 445 | ~77 |
+| Rango A | 32 | 66 805 | ~159 |
+| Rango S | 45 | 129 712 | ~309 |
 
-Con el castigo, saltarse un día completo cuesta **-440 XP**: dos semanas de
+Con el castigo, saltarse un día completo cuesta **-420 XP**: dos semanas de
 descanso equivalen a perder el nivel que habrías alcanzado en ese tiempo.
 
 Migración `xpCurveVersion = 3`: al abrir la app, el XP guardado se reescala
@@ -58,9 +65,33 @@ Si tocas estas funciones, el test correspondiente en `test/` es el contrato.
 
 ---
 
+## 1.1 Cuentas y datos por usuario
+
+| Pieza | Dónde | Qué hace |
+| --- | --- | --- |
+| `SupabaseConfig` | `core/config/supabase_config.dart` | URL + anon key (fichero local o `--dart-define`) |
+| `AuthRepository` | `features/auth/data/auth_repository.dart` | GoTrue: `signIn`, `signUp`, `signOut`, `restore` |
+| `AuthController` | `features/auth/presentation/providers/auth_provider.dart` | `AsyncNotifier<AuthUser?>` + `offline` |
+| `LoginScreen` | `features/auth/presentation/screens/login_screen.dart` | Acceso/registro, mensaje de config ausente |
+| Puerta del router | `app/router.dart` | sin sesión todo va a `/login` |
+| Base por usuario | `core/db/connection/native_connection.dart` | `solo_leveling_<userId>.sqlite` |
+| Ajustes por usuario | `core/storage/settings_store.dart` | claves `sl_<userId>::…` |
+
+- `appDatabaseProvider` y `settingsStoreProvider` dependen de `authProvider`: al
+  cambiar de cuenta se reconstruyen y apuntan al otro archivo/otro espacio de
+  claves.
+- El progreso anterior a las cuentas (claves `hunter_*` y `solo_leveling.sqlite`)
+  lo **reclama el primer usuario que entra**; el archivo original se copia, no se
+  borra. El marcador es `sl_legacy_claimed`.
+- `restore()` devuelve la sesión cacheada si no hay red o el token se rechaza
+  (`AuthResult.offline`); en la cabecera aparece el icono `cloud_off`. Solo
+  `signOut` borra la sesión local.
+
 ## 2. Stack
 
 - Flutter 3.x / Dart `^3.13.5`
+- **Supabase Auth** vía `gotrue` 2.27 (`package:gotrue/gotrue.dart`), sin
+  `supabase_flutter` porque no hay base de datos en la nube ni storage
 - **Riverpod 3** — sin Riverpod generator, todo `Provider` / `StreamProvider` /
   `AsyncNotifier` a mano.
 - **Drift 2.35** / SQLite (`sqlite3_flutter_libs`). En web usa
@@ -85,26 +116,34 @@ lib/
       shell/app_shell.dart        Scaffold + _SystemHeader + NavigationBar + AppRoutes
       theme/                      app_colors.dart · app_typography.dart · app_theme.dart
     core/
-      db/app_database.dart        @DriftDatabase(Goals, Missions, MissionCompletions, MissionSubtasks)
+      config/                      supabase_config.dart + supabase_config.local.dart
+      db/app_database.dart        AppDatabase(userId) · @DriftDatabase(Goals, Missions, MissionCompletions, MissionSubtasks)
                                   schemaVersion 2 · onUpgrade crea mission_subtasks
       db/app_database.g.dart      GENERADO — nunca editar a mano
       db/connection/              connection.dart (export condicional)
                                     native_connection.dart  (dart:io, path_provider)
                                     web_connection.dart    (sqlite3.wasm)
                                     stub_connection.dart   (lanza UnsupportedError)
-      storage/settings_store.dart  SharedPreferences: name, totalXp, streak, lastCompletion, seed date
+      storage/settings_store.dart  SharedPreferences con prefijo de usuario: name, totalXp, streak, lastCompletion, seed, liquidación, versión de curva
       providers/core_providers.dart  appDatabaseProvider · settingsStoreProvider · todayProvider
       widgets/system_widgets.dart SystemPanel · SystemLabel · SectionHeader · StatTile · XpBar · EmptyState
       constants/ · utils/         (vacíos, reservados)
     features/
+      auth/
+        domain/auth_user.dart     id + email del usuario
+        data/auth_repository.dart GoTrue + sesión en SharedPreferences
+        presentation/providers/   AuthController (login, registro, logout, restore)
+        presentation/screens/     login_screen.dart
       missions/
-        domain/daily_stack.dart           fixedDailyStack + SubtaskSpec.targetAt (stack y escalado)
+        domain/interview_catalog.dart     4 metas × 7 preguntas + buildStack/normalizeXp
+        domain/daily_stack.dart           SubtaskSpec.targetAt (escalado por nivel)
         domain/mission_difficulty.dart   MissionDifficulty (D/C/B/A/S + baseXp + color)
         data/missions_table.dart         Missions, MissionCompletions
         data/mission_subtasks_table.dart MissionSubtasks (FK → Missions, CASCADE)
+        data/stack_tables.dart            StackTemplates, StackSubtasks, UserPreferences
         data/mission_repository.dart      stack fijo, subtareas, gating, limpieza
         presentation/providers/missions_provider.dart
-        presentation/screens/missions_screen.dart
+        presentation/screens/              missions_screen.dart · interview_screen.dart
         presentation/widgets/mission_card.dart
       player/
         domain/player_stats.dart          PlayerStats + HunterRank + curva de nivel + racha
@@ -119,8 +158,11 @@ lib/
         presentation/screens/dashboard_screen.dart   (+ ErrorState local)
 test/
   missions/mission_repository_test.dart   AppDatabase.forTesting(NativeDatabase.memory())
-  missions/daily_stack_test.dart          stack fijo, XP total, escalado por nivel
-  player/player_stats_test.dart           curva, rangos, racha
+  missions/interview_catalog_test.dart     catálogo, combinaciones, XP 420, escalado
+  missions/interview_flow_test.dart        persistencia del stack y reconstrucción del día
+  player/player_stats_test.dart           curva, rangos, racha, deuda
+  player/player_status_panel_test.dart     panel normal y en deuda
+  auth/auth_repository_test.dart           GoTrue con MockClient: login, registro, restore, offline
   core/settings_store_test.dart           migración de XP (SharedPreferences mock)
   features/                               (vacío)
 docs/design-system.md
@@ -181,6 +223,12 @@ Las listas se actualizan solas: todo lee de `Stream` de Drift
   existe en la tabla pero **nadie lo escribe**)
 - `mission_subtasks` (v2): id, missionId→missions(id) `CASCADE`, title, target,
   progress, sortOrder, createdAt
+- `stack_templates` (v3): id, goal, slot, title, description, difficulty, xpReward,
+  target, stackVersion — el stack fijo del usuario
+- `stack_subtasks` (v3): id, templateId→stack_templates(id) `CASCADE`, title,
+  base, perLevel, maxLevel, sortOrder — las series que escalan con el nivel
+- `user_preferences` (v3): una fila por usuario con `goal`, `answers`,
+  `source` (`interview` · `default` · `migrated`) y `stackVersion`
 
 El castigo no añade tablas: los completions ya guardan `completedAt` y `xpEarned`,
 que es lo que necesita `penaltyForDay` para saber qué se hizo cada día.
@@ -203,6 +251,7 @@ dart run build_runner build --delete-conflicting-outputs   # tras cambiar tablas
 flutter analyze                                          # debe quedar limpio
 flutter test
 flutter run                                              # dispositivo conectado
+flutter run --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
 flutter build apk --debug
 flutter install
 flutter build web                                        # ver nota de web
@@ -253,6 +302,21 @@ Tests de repositorio: `AppDatabase.forTesting(NativeDatabase.memory())` + `tearD
 - Al abrir la app en un día nuevo, `dailySettlementProvider` cobra el castigo de
   cada día pendiente. El panel muestra `DEUDA n XP` en rojo mientras el total sea
   negativo (nivel 1, barra a 0).
+
+### La entrevista
+
+- Al crear una cuenta, `userPreferences` no existe → el router manda a
+  `/entrevista` hasta que termine.
+- 1 pantalla de meta + 7 preguntas de esa meta. Cada opción aporta una misión;
+  una pregunta es de ajuste y modifica la anterior (por eso 7 preguntas y no 6:
+  con la de ajuste son 6 misiones + la de agua).
+- `Guardar y empezar` escribe `stack_templates`/`stack_subtasks` y reconstruye el
+  día en curso si no coincide. `Prefiero el stack de ejemplo` deja el de
+  físico por defecto (`source: default`) y no vuelve a preguntar.
+- Botón de ajustes (icono `tune`) en la cabecera → repite la entrevista con tus
+  respuestas preseleccionadas.
+- Un usuario que ya tenía misiones **no ve la entrevista**: su stack actual se
+  adopta como plantilla (`source: migrated`).
 
 ### Interacción de las subtareas
 

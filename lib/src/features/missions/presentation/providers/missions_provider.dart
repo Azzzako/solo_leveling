@@ -67,9 +67,10 @@ final ensureDailyMissionsProvider = FutureProvider<void>((ref) async {
   final repository = ref.watch(missionRepositoryProvider);
   final day = ref.watch(todayProvider);
 
+  await repository.ensureStackSeeded();
   final existing = await repository.dailyMissionsOn(day);
   final needsRebuild =
-      existing.isNotEmpty && !repository.matchesFixedStack(existing);
+      existing.isNotEmpty && !await repository.stackMatchesTemplates(existing);
   final seed = settings.dailyMissionsSeedDate;
   final alreadySeeded =
       seed != null &&

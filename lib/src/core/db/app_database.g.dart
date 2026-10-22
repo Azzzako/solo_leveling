@@ -2101,6 +2101,1431 @@ class MissionSubtasksCompanion extends UpdateCompanion<MissionSubtask> {
   }
 }
 
+class $StackTemplatesTable extends StackTemplates
+    with TableInfo<$StackTemplatesTable, StackTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StackTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DailyGoal, String> goal =
+      GeneratedColumn<String>(
+        'goal',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<DailyGoal>($StackTemplatesTable.$convertergoal);
+  static const VerificationMeta _slotMeta = const VerificationMeta('slot');
+  @override
+  late final GeneratedColumn<int> slot = GeneratedColumn<int>(
+    'slot',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<MissionDifficulty, int>
+  difficulty = GeneratedColumn<int>(
+    'difficulty',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<MissionDifficulty>($StackTemplatesTable.$converterdifficulty);
+  static const VerificationMeta _xpRewardMeta = const VerificationMeta(
+    'xpReward',
+  );
+  @override
+  late final GeneratedColumn<int> xpReward = GeneratedColumn<int>(
+    'xp_reward',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetMeta = const VerificationMeta('target');
+  @override
+  late final GeneratedColumn<int> target = GeneratedColumn<int>(
+    'target',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _stackVersionMeta = const VerificationMeta(
+    'stackVersion',
+  );
+  @override
+  late final GeneratedColumn<int> stackVersion = GeneratedColumn<int>(
+    'stack_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    goal,
+    slot,
+    title,
+    description,
+    difficulty,
+    xpReward,
+    target,
+    stackVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stack_templates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StackTemplate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('slot')) {
+      context.handle(
+        _slotMeta,
+        slot.isAcceptableOrUnknown(data['slot']!, _slotMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('xp_reward')) {
+      context.handle(
+        _xpRewardMeta,
+        xpReward.isAcceptableOrUnknown(data['xp_reward']!, _xpRewardMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_xpRewardMeta);
+    }
+    if (data.containsKey('target')) {
+      context.handle(
+        _targetMeta,
+        target.isAcceptableOrUnknown(data['target']!, _targetMeta),
+      );
+    }
+    if (data.containsKey('stack_version')) {
+      context.handle(
+        _stackVersionMeta,
+        stackVersion.isAcceptableOrUnknown(
+          data['stack_version']!,
+          _stackVersionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StackTemplate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StackTemplate(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      goal: $StackTemplatesTable.$convertergoal.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}goal'],
+        )!,
+      ),
+      slot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}slot'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      difficulty: $StackTemplatesTable.$converterdifficulty.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}difficulty'],
+        )!,
+      ),
+      xpReward: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}xp_reward'],
+      )!,
+      target: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target'],
+      )!,
+      stackVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stack_version'],
+      )!,
+    );
+  }
+
+  @override
+  $StackTemplatesTable createAlias(String alias) {
+    return $StackTemplatesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DailyGoal, String, String> $convertergoal =
+      const EnumNameConverter<DailyGoal>(DailyGoal.values);
+  static JsonTypeConverter2<MissionDifficulty, int, int> $converterdifficulty =
+      const EnumIndexConverter<MissionDifficulty>(MissionDifficulty.values);
+}
+
+class StackTemplate extends DataClass implements Insertable<StackTemplate> {
+  final String id;
+  final DailyGoal goal;
+  final int slot;
+  final String title;
+  final String description;
+  final MissionDifficulty difficulty;
+  final int xpReward;
+  final int target;
+  final int stackVersion;
+  const StackTemplate({
+    required this.id,
+    required this.goal,
+    required this.slot,
+    required this.title,
+    required this.description,
+    required this.difficulty,
+    required this.xpReward,
+    required this.target,
+    required this.stackVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    {
+      map['goal'] = Variable<String>(
+        $StackTemplatesTable.$convertergoal.toSql(goal),
+      );
+    }
+    map['slot'] = Variable<int>(slot);
+    map['title'] = Variable<String>(title);
+    map['description'] = Variable<String>(description);
+    {
+      map['difficulty'] = Variable<int>(
+        $StackTemplatesTable.$converterdifficulty.toSql(difficulty),
+      );
+    }
+    map['xp_reward'] = Variable<int>(xpReward);
+    map['target'] = Variable<int>(target);
+    map['stack_version'] = Variable<int>(stackVersion);
+    return map;
+  }
+
+  StackTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return StackTemplatesCompanion(
+      id: Value(id),
+      goal: Value(goal),
+      slot: Value(slot),
+      title: Value(title),
+      description: Value(description),
+      difficulty: Value(difficulty),
+      xpReward: Value(xpReward),
+      target: Value(target),
+      stackVersion: Value(stackVersion),
+    );
+  }
+
+  factory StackTemplate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StackTemplate(
+      id: serializer.fromJson<String>(json['id']),
+      goal: $StackTemplatesTable.$convertergoal.fromJson(
+        serializer.fromJson<String>(json['goal']),
+      ),
+      slot: serializer.fromJson<int>(json['slot']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String>(json['description']),
+      difficulty: $StackTemplatesTable.$converterdifficulty.fromJson(
+        serializer.fromJson<int>(json['difficulty']),
+      ),
+      xpReward: serializer.fromJson<int>(json['xpReward']),
+      target: serializer.fromJson<int>(json['target']),
+      stackVersion: serializer.fromJson<int>(json['stackVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'goal': serializer.toJson<String>(
+        $StackTemplatesTable.$convertergoal.toJson(goal),
+      ),
+      'slot': serializer.toJson<int>(slot),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String>(description),
+      'difficulty': serializer.toJson<int>(
+        $StackTemplatesTable.$converterdifficulty.toJson(difficulty),
+      ),
+      'xpReward': serializer.toJson<int>(xpReward),
+      'target': serializer.toJson<int>(target),
+      'stackVersion': serializer.toJson<int>(stackVersion),
+    };
+  }
+
+  StackTemplate copyWith({
+    String? id,
+    DailyGoal? goal,
+    int? slot,
+    String? title,
+    String? description,
+    MissionDifficulty? difficulty,
+    int? xpReward,
+    int? target,
+    int? stackVersion,
+  }) => StackTemplate(
+    id: id ?? this.id,
+    goal: goal ?? this.goal,
+    slot: slot ?? this.slot,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    difficulty: difficulty ?? this.difficulty,
+    xpReward: xpReward ?? this.xpReward,
+    target: target ?? this.target,
+    stackVersion: stackVersion ?? this.stackVersion,
+  );
+  StackTemplate copyWithCompanion(StackTemplatesCompanion data) {
+    return StackTemplate(
+      id: data.id.present ? data.id.value : this.id,
+      goal: data.goal.present ? data.goal.value : this.goal,
+      slot: data.slot.present ? data.slot.value : this.slot,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      xpReward: data.xpReward.present ? data.xpReward.value : this.xpReward,
+      target: data.target.present ? data.target.value : this.target,
+      stackVersion: data.stackVersion.present
+          ? data.stackVersion.value
+          : this.stackVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StackTemplate(')
+          ..write('id: $id, ')
+          ..write('goal: $goal, ')
+          ..write('slot: $slot, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('xpReward: $xpReward, ')
+          ..write('target: $target, ')
+          ..write('stackVersion: $stackVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    goal,
+    slot,
+    title,
+    description,
+    difficulty,
+    xpReward,
+    target,
+    stackVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StackTemplate &&
+          other.id == this.id &&
+          other.goal == this.goal &&
+          other.slot == this.slot &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.difficulty == this.difficulty &&
+          other.xpReward == this.xpReward &&
+          other.target == this.target &&
+          other.stackVersion == this.stackVersion);
+}
+
+class StackTemplatesCompanion extends UpdateCompanion<StackTemplate> {
+  final Value<String> id;
+  final Value<DailyGoal> goal;
+  final Value<int> slot;
+  final Value<String> title;
+  final Value<String> description;
+  final Value<MissionDifficulty> difficulty;
+  final Value<int> xpReward;
+  final Value<int> target;
+  final Value<int> stackVersion;
+  final Value<int> rowid;
+  const StackTemplatesCompanion({
+    this.id = const Value.absent(),
+    this.goal = const Value.absent(),
+    this.slot = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.xpReward = const Value.absent(),
+    this.target = const Value.absent(),
+    this.stackVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StackTemplatesCompanion.insert({
+    required String id,
+    required DailyGoal goal,
+    required int slot,
+    required String title,
+    this.description = const Value.absent(),
+    required MissionDifficulty difficulty,
+    required int xpReward,
+    this.target = const Value.absent(),
+    this.stackVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       goal = Value(goal),
+       slot = Value(slot),
+       title = Value(title),
+       difficulty = Value(difficulty),
+       xpReward = Value(xpReward);
+  static Insertable<StackTemplate> custom({
+    Expression<String>? id,
+    Expression<String>? goal,
+    Expression<int>? slot,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<int>? difficulty,
+    Expression<int>? xpReward,
+    Expression<int>? target,
+    Expression<int>? stackVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (goal != null) 'goal': goal,
+      if (slot != null) 'slot': slot,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (xpReward != null) 'xp_reward': xpReward,
+      if (target != null) 'target': target,
+      if (stackVersion != null) 'stack_version': stackVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StackTemplatesCompanion copyWith({
+    Value<String>? id,
+    Value<DailyGoal>? goal,
+    Value<int>? slot,
+    Value<String>? title,
+    Value<String>? description,
+    Value<MissionDifficulty>? difficulty,
+    Value<int>? xpReward,
+    Value<int>? target,
+    Value<int>? stackVersion,
+    Value<int>? rowid,
+  }) {
+    return StackTemplatesCompanion(
+      id: id ?? this.id,
+      goal: goal ?? this.goal,
+      slot: slot ?? this.slot,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      difficulty: difficulty ?? this.difficulty,
+      xpReward: xpReward ?? this.xpReward,
+      target: target ?? this.target,
+      stackVersion: stackVersion ?? this.stackVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (goal.present) {
+      map['goal'] = Variable<String>(
+        $StackTemplatesTable.$convertergoal.toSql(goal.value),
+      );
+    }
+    if (slot.present) {
+      map['slot'] = Variable<int>(slot.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<int>(
+        $StackTemplatesTable.$converterdifficulty.toSql(difficulty.value),
+      );
+    }
+    if (xpReward.present) {
+      map['xp_reward'] = Variable<int>(xpReward.value);
+    }
+    if (target.present) {
+      map['target'] = Variable<int>(target.value);
+    }
+    if (stackVersion.present) {
+      map['stack_version'] = Variable<int>(stackVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StackTemplatesCompanion(')
+          ..write('id: $id, ')
+          ..write('goal: $goal, ')
+          ..write('slot: $slot, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('xpReward: $xpReward, ')
+          ..write('target: $target, ')
+          ..write('stackVersion: $stackVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StackSubtasksTable extends StackSubtasks
+    with TableInfo<$StackSubtasksTable, StackSubtask> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StackSubtasksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _templateIdMeta = const VerificationMeta(
+    'templateId',
+  );
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+    'template_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES stack_templates (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseMeta = const VerificationMeta('base');
+  @override
+  late final GeneratedColumn<int> base = GeneratedColumn<int>(
+    'base',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _perLevelMeta = const VerificationMeta(
+    'perLevel',
+  );
+  @override
+  late final GeneratedColumn<int> perLevel = GeneratedColumn<int>(
+    'per_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _maxLevelMeta = const VerificationMeta(
+    'maxLevel',
+  );
+  @override
+  late final GeneratedColumn<int> maxLevel = GeneratedColumn<int>(
+    'max_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(30),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    templateId,
+    title,
+    base,
+    perLevel,
+    maxLevel,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stack_subtasks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StackSubtask> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('template_id')) {
+      context.handle(
+        _templateIdMeta,
+        templateId.isAcceptableOrUnknown(data['template_id']!, _templateIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_templateIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('base')) {
+      context.handle(
+        _baseMeta,
+        base.isAcceptableOrUnknown(data['base']!, _baseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_baseMeta);
+    }
+    if (data.containsKey('per_level')) {
+      context.handle(
+        _perLevelMeta,
+        perLevel.isAcceptableOrUnknown(data['per_level']!, _perLevelMeta),
+      );
+    }
+    if (data.containsKey('max_level')) {
+      context.handle(
+        _maxLevelMeta,
+        maxLevel.isAcceptableOrUnknown(data['max_level']!, _maxLevelMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StackSubtask map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StackSubtask(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      templateId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}template_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      base: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}base'],
+      )!,
+      perLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}per_level'],
+      )!,
+      maxLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_level'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $StackSubtasksTable createAlias(String alias) {
+    return $StackSubtasksTable(attachedDatabase, alias);
+  }
+}
+
+class StackSubtask extends DataClass implements Insertable<StackSubtask> {
+  final String id;
+  final String templateId;
+  final String title;
+  final int base;
+  final int perLevel;
+  final int maxLevel;
+  final int sortOrder;
+  const StackSubtask({
+    required this.id,
+    required this.templateId,
+    required this.title,
+    required this.base,
+    required this.perLevel,
+    required this.maxLevel,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['template_id'] = Variable<String>(templateId);
+    map['title'] = Variable<String>(title);
+    map['base'] = Variable<int>(base);
+    map['per_level'] = Variable<int>(perLevel);
+    map['max_level'] = Variable<int>(maxLevel);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  StackSubtasksCompanion toCompanion(bool nullToAbsent) {
+    return StackSubtasksCompanion(
+      id: Value(id),
+      templateId: Value(templateId),
+      title: Value(title),
+      base: Value(base),
+      perLevel: Value(perLevel),
+      maxLevel: Value(maxLevel),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory StackSubtask.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StackSubtask(
+      id: serializer.fromJson<String>(json['id']),
+      templateId: serializer.fromJson<String>(json['templateId']),
+      title: serializer.fromJson<String>(json['title']),
+      base: serializer.fromJson<int>(json['base']),
+      perLevel: serializer.fromJson<int>(json['perLevel']),
+      maxLevel: serializer.fromJson<int>(json['maxLevel']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'templateId': serializer.toJson<String>(templateId),
+      'title': serializer.toJson<String>(title),
+      'base': serializer.toJson<int>(base),
+      'perLevel': serializer.toJson<int>(perLevel),
+      'maxLevel': serializer.toJson<int>(maxLevel),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  StackSubtask copyWith({
+    String? id,
+    String? templateId,
+    String? title,
+    int? base,
+    int? perLevel,
+    int? maxLevel,
+    int? sortOrder,
+  }) => StackSubtask(
+    id: id ?? this.id,
+    templateId: templateId ?? this.templateId,
+    title: title ?? this.title,
+    base: base ?? this.base,
+    perLevel: perLevel ?? this.perLevel,
+    maxLevel: maxLevel ?? this.maxLevel,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  StackSubtask copyWithCompanion(StackSubtasksCompanion data) {
+    return StackSubtask(
+      id: data.id.present ? data.id.value : this.id,
+      templateId: data.templateId.present
+          ? data.templateId.value
+          : this.templateId,
+      title: data.title.present ? data.title.value : this.title,
+      base: data.base.present ? data.base.value : this.base,
+      perLevel: data.perLevel.present ? data.perLevel.value : this.perLevel,
+      maxLevel: data.maxLevel.present ? data.maxLevel.value : this.maxLevel,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StackSubtask(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('title: $title, ')
+          ..write('base: $base, ')
+          ..write('perLevel: $perLevel, ')
+          ..write('maxLevel: $maxLevel, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, templateId, title, base, perLevel, maxLevel, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StackSubtask &&
+          other.id == this.id &&
+          other.templateId == this.templateId &&
+          other.title == this.title &&
+          other.base == this.base &&
+          other.perLevel == this.perLevel &&
+          other.maxLevel == this.maxLevel &&
+          other.sortOrder == this.sortOrder);
+}
+
+class StackSubtasksCompanion extends UpdateCompanion<StackSubtask> {
+  final Value<String> id;
+  final Value<String> templateId;
+  final Value<String> title;
+  final Value<int> base;
+  final Value<int> perLevel;
+  final Value<int> maxLevel;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const StackSubtasksCompanion({
+    this.id = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.base = const Value.absent(),
+    this.perLevel = const Value.absent(),
+    this.maxLevel = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StackSubtasksCompanion.insert({
+    required String id,
+    required String templateId,
+    required String title,
+    required int base,
+    this.perLevel = const Value.absent(),
+    this.maxLevel = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       templateId = Value(templateId),
+       title = Value(title),
+       base = Value(base);
+  static Insertable<StackSubtask> custom({
+    Expression<String>? id,
+    Expression<String>? templateId,
+    Expression<String>? title,
+    Expression<int>? base,
+    Expression<int>? perLevel,
+    Expression<int>? maxLevel,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (templateId != null) 'template_id': templateId,
+      if (title != null) 'title': title,
+      if (base != null) 'base': base,
+      if (perLevel != null) 'per_level': perLevel,
+      if (maxLevel != null) 'max_level': maxLevel,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StackSubtasksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? templateId,
+    Value<String>? title,
+    Value<int>? base,
+    Value<int>? perLevel,
+    Value<int>? maxLevel,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return StackSubtasksCompanion(
+      id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      title: title ?? this.title,
+      base: base ?? this.base,
+      perLevel: perLevel ?? this.perLevel,
+      maxLevel: maxLevel ?? this.maxLevel,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (base.present) {
+      map['base'] = Variable<int>(base.value);
+    }
+    if (perLevel.present) {
+      map['per_level'] = Variable<int>(perLevel.value);
+    }
+    if (maxLevel.present) {
+      map['max_level'] = Variable<int>(maxLevel.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StackSubtasksCompanion(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('title: $title, ')
+          ..write('base: $base, ')
+          ..write('perLevel: $perLevel, ')
+          ..write('maxLevel: $maxLevel, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $UserPreferencesTable extends UserPreferences
+    with TableInfo<$UserPreferencesTable, UserPreference> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserPreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DailyGoal, String> goal =
+      GeneratedColumn<String>(
+        'goal',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<DailyGoal>($UserPreferencesTable.$convertergoal);
+  static const VerificationMeta _answersMeta = const VerificationMeta(
+    'answers',
+  );
+  @override
+  late final GeneratedColumn<String> answers = GeneratedColumn<String>(
+    'answers',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('interview'),
+  );
+  static const VerificationMeta _stackVersionMeta = const VerificationMeta(
+    'stackVersion',
+  );
+  @override
+  late final GeneratedColumn<int> stackVersion = GeneratedColumn<int>(
+    'stack_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _configuredAtMeta = const VerificationMeta(
+    'configuredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> configuredAt = GeneratedColumn<DateTime>(
+    'configured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    goal,
+    answers,
+    source,
+    stackVersion,
+    configuredAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_preferences';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserPreference> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('answers')) {
+      context.handle(
+        _answersMeta,
+        answers.isAcceptableOrUnknown(data['answers']!, _answersMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('stack_version')) {
+      context.handle(
+        _stackVersionMeta,
+        stackVersion.isAcceptableOrUnknown(
+          data['stack_version']!,
+          _stackVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('configured_at')) {
+      context.handle(
+        _configuredAtMeta,
+        configuredAt.isAcceptableOrUnknown(
+          data['configured_at']!,
+          _configuredAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_configuredAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserPreference map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserPreference(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      goal: $UserPreferencesTable.$convertergoal.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}goal'],
+        )!,
+      ),
+      answers: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}answers'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      stackVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stack_version'],
+      )!,
+      configuredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}configured_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserPreferencesTable createAlias(String alias) {
+    return $UserPreferencesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DailyGoal, String, String> $convertergoal =
+      const EnumNameConverter<DailyGoal>(DailyGoal.values);
+}
+
+class UserPreference extends DataClass implements Insertable<UserPreference> {
+  final int id;
+  final DailyGoal goal;
+  final String answers;
+  final String source;
+  final int stackVersion;
+  final DateTime configuredAt;
+  const UserPreference({
+    required this.id,
+    required this.goal,
+    required this.answers,
+    required this.source,
+    required this.stackVersion,
+    required this.configuredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    {
+      map['goal'] = Variable<String>(
+        $UserPreferencesTable.$convertergoal.toSql(goal),
+      );
+    }
+    map['answers'] = Variable<String>(answers);
+    map['source'] = Variable<String>(source);
+    map['stack_version'] = Variable<int>(stackVersion);
+    map['configured_at'] = Variable<DateTime>(configuredAt);
+    return map;
+  }
+
+  UserPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return UserPreferencesCompanion(
+      id: Value(id),
+      goal: Value(goal),
+      answers: Value(answers),
+      source: Value(source),
+      stackVersion: Value(stackVersion),
+      configuredAt: Value(configuredAt),
+    );
+  }
+
+  factory UserPreference.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserPreference(
+      id: serializer.fromJson<int>(json['id']),
+      goal: $UserPreferencesTable.$convertergoal.fromJson(
+        serializer.fromJson<String>(json['goal']),
+      ),
+      answers: serializer.fromJson<String>(json['answers']),
+      source: serializer.fromJson<String>(json['source']),
+      stackVersion: serializer.fromJson<int>(json['stackVersion']),
+      configuredAt: serializer.fromJson<DateTime>(json['configuredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'goal': serializer.toJson<String>(
+        $UserPreferencesTable.$convertergoal.toJson(goal),
+      ),
+      'answers': serializer.toJson<String>(answers),
+      'source': serializer.toJson<String>(source),
+      'stackVersion': serializer.toJson<int>(stackVersion),
+      'configuredAt': serializer.toJson<DateTime>(configuredAt),
+    };
+  }
+
+  UserPreference copyWith({
+    int? id,
+    DailyGoal? goal,
+    String? answers,
+    String? source,
+    int? stackVersion,
+    DateTime? configuredAt,
+  }) => UserPreference(
+    id: id ?? this.id,
+    goal: goal ?? this.goal,
+    answers: answers ?? this.answers,
+    source: source ?? this.source,
+    stackVersion: stackVersion ?? this.stackVersion,
+    configuredAt: configuredAt ?? this.configuredAt,
+  );
+  UserPreference copyWithCompanion(UserPreferencesCompanion data) {
+    return UserPreference(
+      id: data.id.present ? data.id.value : this.id,
+      goal: data.goal.present ? data.goal.value : this.goal,
+      answers: data.answers.present ? data.answers.value : this.answers,
+      source: data.source.present ? data.source.value : this.source,
+      stackVersion: data.stackVersion.present
+          ? data.stackVersion.value
+          : this.stackVersion,
+      configuredAt: data.configuredAt.present
+          ? data.configuredAt.value
+          : this.configuredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPreference(')
+          ..write('id: $id, ')
+          ..write('goal: $goal, ')
+          ..write('answers: $answers, ')
+          ..write('source: $source, ')
+          ..write('stackVersion: $stackVersion, ')
+          ..write('configuredAt: $configuredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, goal, answers, source, stackVersion, configuredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserPreference &&
+          other.id == this.id &&
+          other.goal == this.goal &&
+          other.answers == this.answers &&
+          other.source == this.source &&
+          other.stackVersion == this.stackVersion &&
+          other.configuredAt == this.configuredAt);
+}
+
+class UserPreferencesCompanion extends UpdateCompanion<UserPreference> {
+  final Value<int> id;
+  final Value<DailyGoal> goal;
+  final Value<String> answers;
+  final Value<String> source;
+  final Value<int> stackVersion;
+  final Value<DateTime> configuredAt;
+  const UserPreferencesCompanion({
+    this.id = const Value.absent(),
+    this.goal = const Value.absent(),
+    this.answers = const Value.absent(),
+    this.source = const Value.absent(),
+    this.stackVersion = const Value.absent(),
+    this.configuredAt = const Value.absent(),
+  });
+  UserPreferencesCompanion.insert({
+    this.id = const Value.absent(),
+    required DailyGoal goal,
+    this.answers = const Value.absent(),
+    this.source = const Value.absent(),
+    this.stackVersion = const Value.absent(),
+    required DateTime configuredAt,
+  }) : goal = Value(goal),
+       configuredAt = Value(configuredAt);
+  static Insertable<UserPreference> custom({
+    Expression<int>? id,
+    Expression<String>? goal,
+    Expression<String>? answers,
+    Expression<String>? source,
+    Expression<int>? stackVersion,
+    Expression<DateTime>? configuredAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (goal != null) 'goal': goal,
+      if (answers != null) 'answers': answers,
+      if (source != null) 'source': source,
+      if (stackVersion != null) 'stack_version': stackVersion,
+      if (configuredAt != null) 'configured_at': configuredAt,
+    });
+  }
+
+  UserPreferencesCompanion copyWith({
+    Value<int>? id,
+    Value<DailyGoal>? goal,
+    Value<String>? answers,
+    Value<String>? source,
+    Value<int>? stackVersion,
+    Value<DateTime>? configuredAt,
+  }) {
+    return UserPreferencesCompanion(
+      id: id ?? this.id,
+      goal: goal ?? this.goal,
+      answers: answers ?? this.answers,
+      source: source ?? this.source,
+      stackVersion: stackVersion ?? this.stackVersion,
+      configuredAt: configuredAt ?? this.configuredAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (goal.present) {
+      map['goal'] = Variable<String>(
+        $UserPreferencesTable.$convertergoal.toSql(goal.value),
+      );
+    }
+    if (answers.present) {
+      map['answers'] = Variable<String>(answers.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (stackVersion.present) {
+      map['stack_version'] = Variable<int>(stackVersion.value);
+    }
+    if (configuredAt.present) {
+      map['configured_at'] = Variable<DateTime>(configuredAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserPreferencesCompanion(')
+          ..write('id: $id, ')
+          ..write('goal: $goal, ')
+          ..write('answers: $answers, ')
+          ..write('source: $source, ')
+          ..write('stackVersion: $stackVersion, ')
+          ..write('configuredAt: $configuredAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2109,6 +3534,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MissionCompletionsTable missionCompletions =
       $MissionCompletionsTable(this);
   late final $MissionSubtasksTable missionSubtasks = $MissionSubtasksTable(
+    this,
+  );
+  late final $StackTemplatesTable stackTemplates = $StackTemplatesTable(this);
+  late final $StackSubtasksTable stackSubtasks = $StackSubtasksTable(this);
+  late final $UserPreferencesTable userPreferences = $UserPreferencesTable(
     this,
   );
   @override
@@ -2120,6 +3550,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     missions,
     missionCompletions,
     missionSubtasks,
+    stackTemplates,
+    stackSubtasks,
+    userPreferences,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2136,6 +3569,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('mission_subtasks', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stack_templates',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('stack_subtasks', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3646,6 +5086,991 @@ typedef $$MissionSubtasksTableProcessedTableManager =
       MissionSubtask,
       PrefetchHooks Function({bool missionId})
     >;
+typedef $$StackTemplatesTableCreateCompanionBuilder =
+    StackTemplatesCompanion Function({
+      required String id,
+      required DailyGoal goal,
+      required int slot,
+      required String title,
+      Value<String> description,
+      required MissionDifficulty difficulty,
+      required int xpReward,
+      Value<int> target,
+      Value<int> stackVersion,
+      Value<int> rowid,
+    });
+typedef $$StackTemplatesTableUpdateCompanionBuilder =
+    StackTemplatesCompanion Function({
+      Value<String> id,
+      Value<DailyGoal> goal,
+      Value<int> slot,
+      Value<String> title,
+      Value<String> description,
+      Value<MissionDifficulty> difficulty,
+      Value<int> xpReward,
+      Value<int> target,
+      Value<int> stackVersion,
+      Value<int> rowid,
+    });
+
+final class $$StackTemplatesTableReferences
+    extends BaseReferences<_$AppDatabase, $StackTemplatesTable, StackTemplate> {
+  $$StackTemplatesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$StackSubtasksTable, List<StackSubtask>>
+  _stackSubtasksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.stackSubtasks,
+    aliasName: 'stack_templates__id__stack_subtasks__template_id',
+  );
+
+  $$StackSubtasksTableProcessedTableManager get stackSubtasksRefs {
+    final manager = $$StackSubtasksTableTableManager(
+      $_db,
+      $_db.stackSubtasks,
+    ).filter((f) => f.templateId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_stackSubtasksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$StackTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $StackTemplatesTable> {
+  $$StackTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DailyGoal, DailyGoal, String> get goal =>
+      $composableBuilder(
+        column: $table.goal,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<MissionDifficulty, MissionDifficulty, int>
+  get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get xpReward => $composableBuilder(
+    column: $table.xpReward,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> stackSubtasksRefs(
+    Expression<bool> Function($$StackSubtasksTableFilterComposer f) f,
+  ) {
+    final $$StackSubtasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.stackSubtasks,
+      getReferencedColumn: (t) => t.templateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StackSubtasksTableFilterComposer(
+            $db: $db,
+            $table: $db.stackSubtasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$StackTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $StackTemplatesTable> {
+  $$StackTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get difficulty => $composableBuilder(
+    column: $table.difficulty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get xpReward => $composableBuilder(
+    column: $table.xpReward,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StackTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StackTemplatesTable> {
+  $$StackTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DailyGoal, String> get goal =>
+      $composableBuilder(column: $table.goal, builder: (column) => column);
+
+  GeneratedColumn<int> get slot =>
+      $composableBuilder(column: $table.slot, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<MissionDifficulty, int> get difficulty =>
+      $composableBuilder(
+        column: $table.difficulty,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get xpReward =>
+      $composableBuilder(column: $table.xpReward, builder: (column) => column);
+
+  GeneratedColumn<int> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => column);
+
+  GeneratedColumn<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => column,
+  );
+
+  Expression<T> stackSubtasksRefs<T extends Object>(
+    Expression<T> Function($$StackSubtasksTableAnnotationComposer a) f,
+  ) {
+    final $$StackSubtasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.stackSubtasks,
+      getReferencedColumn: (t) => t.templateId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StackSubtasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.stackSubtasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$StackTemplatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StackTemplatesTable,
+          StackTemplate,
+          $$StackTemplatesTableFilterComposer,
+          $$StackTemplatesTableOrderingComposer,
+          $$StackTemplatesTableAnnotationComposer,
+          $$StackTemplatesTableCreateCompanionBuilder,
+          $$StackTemplatesTableUpdateCompanionBuilder,
+          (StackTemplate, $$StackTemplatesTableReferences),
+          StackTemplate,
+          PrefetchHooks Function({bool stackSubtasksRefs})
+        > {
+  $$StackTemplatesTableTableManager(
+    _$AppDatabase db,
+    $StackTemplatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StackTemplatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StackTemplatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StackTemplatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DailyGoal> goal = const Value.absent(),
+                Value<int> slot = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<MissionDifficulty> difficulty = const Value.absent(),
+                Value<int> xpReward = const Value.absent(),
+                Value<int> target = const Value.absent(),
+                Value<int> stackVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StackTemplatesCompanion(
+                id: id,
+                goal: goal,
+                slot: slot,
+                title: title,
+                description: description,
+                difficulty: difficulty,
+                xpReward: xpReward,
+                target: target,
+                stackVersion: stackVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DailyGoal goal,
+                required int slot,
+                required String title,
+                Value<String> description = const Value.absent(),
+                required MissionDifficulty difficulty,
+                required int xpReward,
+                Value<int> target = const Value.absent(),
+                Value<int> stackVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StackTemplatesCompanion.insert(
+                id: id,
+                goal: goal,
+                slot: slot,
+                title: title,
+                description: description,
+                difficulty: difficulty,
+                xpReward: xpReward,
+                target: target,
+                stackVersion: stackVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$StackTemplatesTable, StackTemplate>(table),
+                  $$StackTemplatesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({stackSubtasksRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (stackSubtasksRefs) db.stackSubtasks,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (stackSubtasksRefs)
+                    await $_getPrefetchedData<
+                      StackTemplate,
+                      $StackTemplatesTable,
+                      StackSubtask
+                    >(
+                      currentTable: table,
+                      referencedTable: $$StackTemplatesTableReferences
+                          ._stackSubtasksRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$StackTemplatesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).stackSubtasksRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.templateId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$StackTemplatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StackTemplatesTable,
+      StackTemplate,
+      $$StackTemplatesTableFilterComposer,
+      $$StackTemplatesTableOrderingComposer,
+      $$StackTemplatesTableAnnotationComposer,
+      $$StackTemplatesTableCreateCompanionBuilder,
+      $$StackTemplatesTableUpdateCompanionBuilder,
+      (StackTemplate, $$StackTemplatesTableReferences),
+      StackTemplate,
+      PrefetchHooks Function({bool stackSubtasksRefs})
+    >;
+typedef $$StackSubtasksTableCreateCompanionBuilder =
+    StackSubtasksCompanion Function({
+      required String id,
+      required String templateId,
+      required String title,
+      required int base,
+      Value<int> perLevel,
+      Value<int> maxLevel,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$StackSubtasksTableUpdateCompanionBuilder =
+    StackSubtasksCompanion Function({
+      Value<String> id,
+      Value<String> templateId,
+      Value<String> title,
+      Value<int> base,
+      Value<int> perLevel,
+      Value<int> maxLevel,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+final class $$StackSubtasksTableReferences
+    extends BaseReferences<_$AppDatabase, $StackSubtasksTable, StackSubtask> {
+  $$StackSubtasksTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $StackTemplatesTable _templateIdTable(_$AppDatabase db) => db
+      .stackTemplates
+      .createAlias('stack_subtasks__template_id__stack_templates__id');
+
+  $$StackTemplatesTableProcessedTableManager get templateId {
+    final $_column = $_itemColumn<String>('template_id')!;
+
+    final manager = $$StackTemplatesTableTableManager(
+      $_db,
+      $_db.stackTemplates,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_templateIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$StackSubtasksTableFilterComposer
+    extends Composer<_$AppDatabase, $StackSubtasksTable> {
+  $$StackSubtasksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get base => $composableBuilder(
+    column: $table.base,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get perLevel => $composableBuilder(
+    column: $table.perLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxLevel => $composableBuilder(
+    column: $table.maxLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$StackTemplatesTableFilterComposer get templateId {
+    final $$StackTemplatesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.stackTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StackTemplatesTableFilterComposer(
+            $db: $db,
+            $table: $db.stackTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StackSubtasksTableOrderingComposer
+    extends Composer<_$AppDatabase, $StackSubtasksTable> {
+  $$StackSubtasksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get base => $composableBuilder(
+    column: $table.base,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get perLevel => $composableBuilder(
+    column: $table.perLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxLevel => $composableBuilder(
+    column: $table.maxLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$StackTemplatesTableOrderingComposer get templateId {
+    final $$StackTemplatesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.stackTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StackTemplatesTableOrderingComposer(
+            $db: $db,
+            $table: $db.stackTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StackSubtasksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StackSubtasksTable> {
+  $$StackSubtasksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get base =>
+      $composableBuilder(column: $table.base, builder: (column) => column);
+
+  GeneratedColumn<int> get perLevel =>
+      $composableBuilder(column: $table.perLevel, builder: (column) => column);
+
+  GeneratedColumn<int> get maxLevel =>
+      $composableBuilder(column: $table.maxLevel, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  $$StackTemplatesTableAnnotationComposer get templateId {
+    final $$StackTemplatesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.templateId,
+      referencedTable: $db.stackTemplates,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$StackTemplatesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.stackTemplates,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$StackSubtasksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StackSubtasksTable,
+          StackSubtask,
+          $$StackSubtasksTableFilterComposer,
+          $$StackSubtasksTableOrderingComposer,
+          $$StackSubtasksTableAnnotationComposer,
+          $$StackSubtasksTableCreateCompanionBuilder,
+          $$StackSubtasksTableUpdateCompanionBuilder,
+          (StackSubtask, $$StackSubtasksTableReferences),
+          StackSubtask,
+          PrefetchHooks Function({bool templateId})
+        > {
+  $$StackSubtasksTableTableManager(_$AppDatabase db, $StackSubtasksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StackSubtasksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StackSubtasksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StackSubtasksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> templateId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> base = const Value.absent(),
+                Value<int> perLevel = const Value.absent(),
+                Value<int> maxLevel = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StackSubtasksCompanion(
+                id: id,
+                templateId: templateId,
+                title: title,
+                base: base,
+                perLevel: perLevel,
+                maxLevel: maxLevel,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String templateId,
+                required String title,
+                required int base,
+                Value<int> perLevel = const Value.absent(),
+                Value<int> maxLevel = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StackSubtasksCompanion.insert(
+                id: id,
+                templateId: templateId,
+                title: title,
+                base: base,
+                perLevel: perLevel,
+                maxLevel: maxLevel,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$StackSubtasksTable, StackSubtask>(table),
+                  $$StackSubtasksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({templateId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (templateId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.templateId,
+                        referencedTable: $$StackSubtasksTableReferences
+                            ._templateIdTable(db),
+                        referencedColumn: $$StackSubtasksTableReferences
+                            ._templateIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$StackSubtasksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StackSubtasksTable,
+      StackSubtask,
+      $$StackSubtasksTableFilterComposer,
+      $$StackSubtasksTableOrderingComposer,
+      $$StackSubtasksTableAnnotationComposer,
+      $$StackSubtasksTableCreateCompanionBuilder,
+      $$StackSubtasksTableUpdateCompanionBuilder,
+      (StackSubtask, $$StackSubtasksTableReferences),
+      StackSubtask,
+      PrefetchHooks Function({bool templateId})
+    >;
+typedef $$UserPreferencesTableCreateCompanionBuilder =
+    UserPreferencesCompanion Function({
+      Value<int> id,
+      required DailyGoal goal,
+      Value<String> answers,
+      Value<String> source,
+      Value<int> stackVersion,
+      required DateTime configuredAt,
+    });
+typedef $$UserPreferencesTableUpdateCompanionBuilder =
+    UserPreferencesCompanion Function({
+      Value<int> id,
+      Value<DailyGoal> goal,
+      Value<String> answers,
+      Value<String> source,
+      Value<int> stackVersion,
+      Value<DateTime> configuredAt,
+    });
+
+class $$UserPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DailyGoal, DailyGoal, String> get goal =>
+      $composableBuilder(
+        column: $table.goal,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get answers => $composableBuilder(
+    column: $table.answers,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get configuredAt => $composableBuilder(
+    column: $table.configuredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get answers => $composableBuilder(
+    column: $table.answers,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get configuredAt => $composableBuilder(
+    column: $table.configuredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserPreferencesTable> {
+  $$UserPreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DailyGoal, String> get goal =>
+      $composableBuilder(column: $table.goal, builder: (column) => column);
+
+  GeneratedColumn<String> get answers =>
+      $composableBuilder(column: $table.answers, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get stackVersion => $composableBuilder(
+    column: $table.stackVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get configuredAt => $composableBuilder(
+    column: $table.configuredAt,
+    builder: (column) => column,
+  );
+}
+
+class $$UserPreferencesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserPreferencesTable,
+          UserPreference,
+          $$UserPreferencesTableFilterComposer,
+          $$UserPreferencesTableOrderingComposer,
+          $$UserPreferencesTableAnnotationComposer,
+          $$UserPreferencesTableCreateCompanionBuilder,
+          $$UserPreferencesTableUpdateCompanionBuilder,
+          (
+            UserPreference,
+            BaseReferences<
+              _$AppDatabase,
+              $UserPreferencesTable,
+              UserPreference
+            >,
+          ),
+          UserPreference,
+          PrefetchHooks Function()
+        > {
+  $$UserPreferencesTableTableManager(
+    _$AppDatabase db,
+    $UserPreferencesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserPreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserPreferencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserPreferencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DailyGoal> goal = const Value.absent(),
+                Value<String> answers = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> stackVersion = const Value.absent(),
+                Value<DateTime> configuredAt = const Value.absent(),
+              }) => UserPreferencesCompanion(
+                id: id,
+                goal: goal,
+                answers: answers,
+                source: source,
+                stackVersion: stackVersion,
+                configuredAt: configuredAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DailyGoal goal,
+                Value<String> answers = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> stackVersion = const Value.absent(),
+                required DateTime configuredAt,
+              }) => UserPreferencesCompanion.insert(
+                id: id,
+                goal: goal,
+                answers: answers,
+                source: source,
+                stackVersion: stackVersion,
+                configuredAt: configuredAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$UserPreferencesTable, UserPreference>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $UserPreferencesTable,
+                    UserPreference
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserPreferencesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserPreferencesTable,
+      UserPreference,
+      $$UserPreferencesTableFilterComposer,
+      $$UserPreferencesTableOrderingComposer,
+      $$UserPreferencesTableAnnotationComposer,
+      $$UserPreferencesTableCreateCompanionBuilder,
+      $$UserPreferencesTableUpdateCompanionBuilder,
+      (
+        UserPreference,
+        BaseReferences<_$AppDatabase, $UserPreferencesTable, UserPreference>,
+      ),
+      UserPreference,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3658,4 +6083,10 @@ class $AppDatabaseManager {
       $$MissionCompletionsTableTableManager(_db, _db.missionCompletions);
   $$MissionSubtasksTableTableManager get missionSubtasks =>
       $$MissionSubtasksTableTableManager(_db, _db.missionSubtasks);
+  $$StackTemplatesTableTableManager get stackTemplates =>
+      $$StackTemplatesTableTableManager(_db, _db.stackTemplates);
+  $$StackSubtasksTableTableManager get stackSubtasks =>
+      $$StackSubtasksTableTableManager(_db, _db.stackSubtasks);
+  $$UserPreferencesTableTableManager get userPreferences =>
+      $$UserPreferencesTableTableManager(_db, _db.userPreferences);
 }

@@ -1,21 +1,40 @@
 # Solo Leveling
 
-Personal, offline-only Flutter app. One user, built by the owner, installed on
-their own phone. No accounts, no backend, no telemetry, no network calls.
+Personal Flutter app, built and installed by the owner on their own phone.
+Supabase is used **only for identity** (email + password via GoTrue); no game
+data ever leaves the device: each account gets its own SQLite file
+(`solo_leveling_<userId>.sqlite`) and its own `SharedPreferences` keys
+(`sl_<userId>::…`). With a cached session the app works fully offline. Setup in
+`docs/supabase.md`; config via `supabase_config.local.dart` or
+`--dart-define=SUPABASE_URL=… --dart-define=SUPABASE_ANON_KEY=…`.
+
+## Accounts
+
+- `authProvider` is the gate: no session → `/login`; every DB/settings provider
+  depends on it, so switching account swaps the whole data set.
+- Legacy data (pre-accounts `hunter_*` prefs and `solo_leveling.sqlite`) is
+  claimed by the **first** account that signs in, once (`sl_legacy_claimed`);
+  the old SQLite file is copied, never deleted.
+- `AuthRepository.restore()` returns the cached session when there is no network
+  or the token is rejected (`AuthResult.offline`); only `signOut` clears it.
+- Auth tests use `MockClient` from `package:http/testing.dart` (no real network).
 
 ## Product
 
-- **Misiones diarias**: a **fixed** set of 7 missions, no randomness, no pool:
-  exercise, eat healthy, 10k steps, 2L water, reading, meditation, cats
-  (`fixedDailyStack` in `features/missions/domain/daily_stack.dart`). Same day =
-  same set, never duplicated; if the day's rows are not the fixed stack they are
-  rebuilt.
+- **Misiones diarias**: a **fixed** set of 7 missions per user, no randomness.
+  The stack is data (`stack_templates` / `stack_subtasks`), built by the first-run
+  interview: one goal question (physical · productivity · focus · relationships)
+  plus 7 questions of that goal (`features/missions/domain/interview_catalog.dart`).
+  Every option contributes one mission; one question per goal is an adjustment
+  (`InterviewOption.scalePrevious`) that tunes the previous mission. `buildStack`
+  always returns 7 unique missions worth exactly `dailyStackXp`. Same day = same
+  stack; if the day's rows do not match the templates they are rebuilt.
 - **Subtasks**: exercise has 4 (pushups, abs, squats, pullups) and "comer sano"
   has 3 (breakfast, lunch, dinner); a parent mission (target = subtask count)
   only completes when all of them are done. Exercise reps scale with level:
   `base + perLevel × (level - 1)`, frozen at 30.
 - **XP / nivel / rango**: XP per mission is **flat** (no `baseXp × target`),
-  440 XP/day for the whole stack. Levels follow
+  420 XP/day for the whole stack, whatever the goal. Levels follow
   `xpToNext(n) = 325 + (n - 1) * 122`; ranks `E → D → C → B → A → S → SS → SSS`
   by level (`<4, <8, <14, <22, <32, <45, <60, else`). Changing the curve means
   bumping `SettingsStore.xpCurveVersion` and extending `rescaleXp`.
@@ -68,8 +87,9 @@ Rules:
   conditional export. `dart:io` is only allowed there (plus native-only builds).
 - No feature imports another feature's `presentation/`. Cross-feature reads go
   through that feature's providers or repositories.
-- No new state-management library, no network, no `dart:io` outside
-  `core/db/connection/`.
+- No new state-management library and no `dart:io` outside
+  `core/db/connection/`. Network access is allowed **only** from
+  `features/auth/` (Supabase Auth). No telemetry, no analytics, no sync.
 
 ## Conventions
 

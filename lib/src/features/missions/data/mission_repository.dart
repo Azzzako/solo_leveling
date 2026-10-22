@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/db/app_database.dart';
-import '../domain/daily_stack.dart';
+import '../domain/interview_catalog.dart';
 import '../domain/mission_difficulty.dart';
 
 class MissionCompletionOutcome {
@@ -430,10 +432,186 @@ class MissionRepository {
     );
   }
 
-  bool matchesFixedStack(List<Mission> missions) {
-    if (missions.length != fixedDailyStack.length) return false;
-    for (var i = 0; i < fixedDailyStack.length; i++) {
-      if (missions[i].title != fixedDailyStack[i].title) return false;
+  Stream<List<StackTemplate>> watchStackTemplates() => (_db.select(
+    _db.stackTemplates,
+  )..orderBy([(t) => OrderingTerm.asc(t.slot)])).watch();
+
+  Future<List<StackTemplate>> stackTemplates() => (_db.select(
+    _db.stackTemplates,
+  )..orderBy([(t) => OrderingTerm.asc(t.slot)])).get();
+
+  Future<List<StackSubtask>> stackSubtasksOf(String templateId) =>
+      (_db.select(_db.stackSubtasks)
+            ..where((s) => s.templateId.equals(templateId))
+            ..orderBy([(s) => OrderingTerm.asc(s.sortOrder)]))
+          .get();
+
+  Future<UserPreference?> userPreference() => (_db.select(
+    _db.userPreferences,
+  )..where((p) => p.id.equals(1))).getSingleOrNull();
+
+  Future<void> savePreferences({
+    required DailyGoal goal,
+    required Map<String, String> answers,
+    required String source,
+  }) async {
+    await _db
+        .into(_db.userPreferences)
+        .insertOnConflictUpdate(
+          UserPreferencesCompanion.insert(
+            id: const Value(1),
+            goal: goal,
+            answers: Value(_encodeAnswers(answers)),
+            source: Value(source),
+            stackVersion: Value(stackFormatVersion),
+            configuredAt: DateTime.now(),
+          ),
+        );
+  }
+
+  Future<void> saveStack(DailyGoal goal, List<MissionDraft> drafts) async {
+    await _db.delete(_db.stackTemplates).go();
+    for (var slot = 0; slot < drafts.length; slot++) {
+      final draft = drafts[slot];
+      final templateId = uuid.v4();
+      await _db
+          .into(_db.stackTemplates)
+          .insert(
+            StackTemplatesCompanion.insert(
+              id: templateId,
+              goal: goal,
+              slot: slot,
+              title: draft.title,
+              description: Value(draft.description),
+              difficulty: draft.difficulty,
+              xpReward: draft.xpReward,
+              target: Value(draft.target),
+              stackVersion: const Value(1),
+            ),
+          );
+      for (var order = 0; order < draft.subtasks.length; order++) {
+        final subtask = draft.subtasks[order];
+        await _db
+            .into(_db.stackSubtasks)
+            .insert(
+              StackSubtasksCompanion.insert(
+                id: uuid.v4(),
+                templateId: templateId,
+                title: subtask.title,
+                base: subtask.base,
+                perLevel: Value(subtask.perLevel),
+                maxLevel: Value(subtask.maxLevel),
+                sortOrder: Value(order),
+              ),
+            );
+      }
+    }
+  }
+
+  Future<void> ensureStackSeeded() async {
+    if ((await stackTemplates()).isNotEmpty) return;
+    final adopted = await _stackFromExistingMissions();
+    if (adopted != null) {
+      await saveStack(DailyGoal.fisico, adopted);
+      await savePreferences(
+        goal: DailyGoal.fisico,
+        answers: const {},
+        source: 'migrated',
+      );
+      return;
+    }
+    await saveStack(DailyGoal.fisico, defaultStack());
+    await savePreferences(
+      goal: DailyGoal.fisico,
+      answers: const {},
+      source: 'default',
+    );
+  }
+
+  Future<List<MissionDraft>?> _stackFromExistingMissions() async {
+    final templates = _db.select(_db.missions)
+      ..where((m) => m.isDaily.equals(true))
+      ..orderBy([(m) => OrderingTerm.desc(m.dueDate)])
+      ..limit(1);
+    final last = await templates.getSingleOrNull();
+    if (last == null) return null;
+
+    final rows =
+        await (_db.select(_db.missions)
+              ..where(
+                (m) =>
+                    m.isDaily.equals(true) &
+                    m.dueDate.isBiggerOrEqualValue(
+                      DateTime(
+                        last.dueDate!.year,
+                        last.dueDate!.month,
+                        last.dueDate!.day,
+                      ),
+                    ) &
+                    m.dueDate.isSmallerThanValue(
+                      DateTime(
+                        last.dueDate!.year,
+                        last.dueDate!.month,
+                        last.dueDate!.day,
+                      ).add(const Duration(days: 1)),
+                    ),
+              )
+              ..orderBy([(m) => OrderingTerm.asc(m.sortOrder)]))
+            .get();
+    if (rows.isEmpty) return null;
+
+    final drafts = <MissionDraft>[];
+    for (final mission in rows) {
+      final subtasks = await subtasksOf(mission.id);
+      drafts.add(
+        MissionDraft(
+          title: mission.title,
+          description: mission.description,
+          difficulty: mission.difficulty,
+          xpReward: mission.xpReward,
+          target: mission.target,
+          subtasks: [
+            for (final subtask in subtasks)
+              SubtaskDraft(title: subtask.title, base: subtask.target),
+          ],
+        ),
+      );
+    }
+    return normalizeXp(drafts, dailyStackXp);
+  }
+
+  Future<void> applyStack({
+    required DailyGoal goal,
+    required Map<String, String> answers,
+    required DateTime day,
+    required int level,
+    String source = 'interview',
+  }) async {
+    await saveStack(goal, buildStack(goal, answers));
+    await savePreferences(goal: goal, answers: answers, source: source);
+
+    final existing = await dailyMissionsOn(day);
+    if (existing.isEmpty) {
+      await generateDailyMissions(day, level: level);
+      return;
+    }
+    if (!await stackMatchesTemplates(existing)) {
+      await clearDailyMissions(day);
+      await generateDailyMissions(day, level: level);
+    }
+  }
+
+  Future<bool> stackMatchesTemplates(List<Mission> missions) async {
+    final templates = await stackTemplates();
+    if (templates.isEmpty || missions.length != templates.length) return false;
+    for (var i = 0; i < templates.length; i++) {
+      final template = templates[i];
+      final mission = missions[i];
+      if (mission.title != template.title) return false;
+      if (mission.xpReward != template.xpReward) return false;
+      final subtasks = await stackSubtasksOf(template.id);
+      final expected = subtasks.isEmpty ? template.target : subtasks.length;
+      if (mission.target != expected) return false;
     }
     return true;
   }
@@ -442,32 +620,33 @@ class MissionRepository {
     final existing = await dailyMissionsOn(day);
     if (existing.isNotEmpty) return 0;
 
+    await ensureStackSeeded();
+    final templates = await stackTemplates();
     final due = DateTime(day.year, day.month, day.day, 23, 59);
 
-    for (var i = 0; i < fixedDailyStack.length; i++) {
-      final spec = fixedDailyStack[i];
+    for (final template in templates) {
+      final subtasks = await stackSubtasksOf(template.id);
       final missionId = uuid.v4();
       await _db
           .into(_db.missions)
           .insert(
             MissionsCompanion.insert(
               id: missionId,
-              title: spec.title,
-              description: Value(spec.description),
-              difficulty: spec.difficulty,
-              xpReward: spec.xpReward,
+              title: template.title,
+              description: Value(template.description),
+              difficulty: template.difficulty,
+              xpReward: template.xpReward,
               target: Value(
-                spec.hasSubtasks ? spec.subtasks.length : spec.target,
+                subtasks.isEmpty ? template.target : subtasks.length,
               ),
               isDaily: const Value(true),
               dueDate: Value(due),
-              sortOrder: Value(i),
+              sortOrder: Value(template.slot),
               createdAt: DateTime.now(),
             ),
           );
-
-      for (var s = 0; s < spec.subtasks.length; s++) {
-        final subtask = spec.subtasks[s];
+      for (var order = 0; order < subtasks.length; order++) {
+        final subtask = subtasks[order];
         await _db
             .into(_db.missionSubtasks)
             .insert(
@@ -475,14 +654,28 @@ class MissionRepository {
                 id: uuid.v4(),
                 missionId: missionId,
                 title: subtask.title,
-                target: subtask.targetAt(level),
-                sortOrder: Value(s),
+                target: _subtaskTarget(subtask, level),
+                sortOrder: Value(order),
                 createdAt: DateTime.now(),
               ),
             );
       }
     }
 
-    return fixedDailyStack.length;
+    return templates.length;
+  }
+
+  int _subtaskTarget(StackSubtask subtask, int level) =>
+      subtask.base +
+      subtask.perLevel *
+          ((level < 1 ? 1 : level).clamp(1, subtask.maxLevel) - 1);
+
+  String _encodeAnswers(Map<String, String> answers) => jsonEncode(answers);
+
+  Map<String, String> decodeAnswers(String raw) {
+    if (raw.trim().isEmpty) return const {};
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) return const {};
+    return decoded.map((key, value) => MapEntry(key, '$value'));
   }
 }

@@ -3,79 +3,130 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/player/domain/player_stats.dart';
 
 class SettingsStore {
-  SettingsStore(this._prefs);
-
-  static const _kName = 'hunter_name';
-  static const _kXp = 'hunter_total_xp';
-  static const _kStreak = 'hunter_streak';
-  static const _kLastCompletion = 'hunter_last_completion';
-  static const _kMissionSeed = 'daily_missions_seed_date';
-  static const _kXpCurveVersion = 'hunter_xp_curve_version';
-  static const _kSettledDate = 'hunter_penalty_settled_date';
+  SettingsStore(this._prefs, {required this.userId});
 
   static const xpCurveVersion = 3;
 
   static const _levelScaleByCurveVersion = <int, double>{1: 0.35, 2: 1, 3: 1};
 
   final SharedPreferences _prefs;
+  final String userId;
 
-  static Future<SettingsStore> open() async =>
-      SettingsStore(await SharedPreferences.getInstance());
+  String _key(String name) => 'sl_$userId::$name';
+
+  static const _legacyKeys = <String>[
+    'hunter_name',
+    'hunter_total_xp',
+    'hunter_streak',
+    'hunter_last_completion',
+    'daily_missions_seed_date',
+    'hunter_xp_curve_version',
+    'hunter_penalty_settled_date',
+  ];
+
+  static const _kLegacyClaimed = 'sl_legacy_claimed';
+
+  static const _legacyRenames = <String, String>{
+    'hunter_xp_curve_version': 'xp_curve_version',
+  };
+
+  static const _kXpCurveVersion = 'xp_curve_version';
+  static const _kName = 'hunter_name';
+  static const _kXp = 'hunter_total_xp';
+  static const _kStreak = 'hunter_streak';
+  static const _kLastCompletion = 'hunter_last_completion';
+  static const _kMissionSeed = 'daily_missions_seed_date';
+  static const _kSettledDate = 'hunter_penalty_settled_date';
+
+  static Future<SettingsStore> open(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final store = SettingsStore(prefs, userId: userId);
+    await store.adoptLegacyProgressOnce();
+    return store;
+  }
+
+  Future<void> adoptLegacyProgressOnce() async {
+    if (_prefs.getBool(_kLegacyClaimed) ?? false) return;
+    final present = _legacyKeys.where(_prefs.containsKey).toList();
+    if (present.isEmpty) {
+      await _prefs.setBool(_kLegacyClaimed, true);
+      return;
+    }
+    for (final key in present) {
+      final target = _key(_legacyRenames[key] ?? key);
+      final value = _prefs.get(key);
+      switch (value) {
+        case final int number:
+          await _prefs.setInt(target, number);
+        case final double number:
+          await _prefs.setDouble(target, number);
+        case final bool flag:
+          await _prefs.setBool(target, flag);
+        case final String text:
+          await _prefs.setString(target, text);
+        case final List<String> items:
+          await _prefs.setStringList(target, items);
+        case _:
+          break;
+      }
+      await _prefs.remove(key);
+    }
+    await _prefs.setBool(_kLegacyClaimed, true);
+  }
 
   PlayerStats readStats() => PlayerStats(
-    name: _prefs.getString(_kName) ?? 'Cazador',
-    totalXp: _prefs.getInt(_kXp) ?? 0,
-    streak: _prefs.getInt(_kStreak) ?? 0,
-    lastCompletion: _prefs.getInt(_kLastCompletion) == null
+    name: _prefs.getString(_key(_kName)) ?? 'Cazador',
+    totalXp: _prefs.getInt(_key(_kXp)) ?? 0,
+    streak: _prefs.getInt(_key(_kStreak)) ?? 0,
+    lastCompletion: _prefs.getInt(_key(_kLastCompletion)) == null
         ? null
-        : DateTime.fromMillisecondsSinceEpoch(_prefs.getInt(_kLastCompletion)!),
+        : DateTime.fromMillisecondsSinceEpoch(
+            _prefs.getInt(_key(_kLastCompletion))!,
+          ),
   );
 
   Future<void> writeStats(PlayerStats stats) async {
-    await _prefs.setString(_kName, stats.name);
-    await _prefs.setInt(_kXp, stats.totalXp);
-    await _prefs.setInt(_kStreak, stats.streak);
+    await _prefs.setString(_key(_kName), stats.name);
+    await _prefs.setInt(_key(_kXp), stats.totalXp);
+    await _prefs.setInt(_key(_kStreak), stats.streak);
     final last = stats.lastCompletion;
     await _prefs.setInt(
-      _kLastCompletion,
+      _key(_kLastCompletion),
       last == null ? 0 : last.millisecondsSinceEpoch,
     );
   }
 
   DateTime? get dailyMissionsSeedDate {
-    final millis = _prefs.getInt(_kMissionSeed);
+    final millis = _prefs.getInt(_key(_kMissionSeed));
     return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
   }
 
   Future<void> writeDailyMissionsSeed(DateTime date) =>
-      _prefs.setInt(_kMissionSeed, date.millisecondsSinceEpoch);
+      _prefs.setInt(_key(_kMissionSeed), date.millisecondsSinceEpoch);
 
   Future<bool> applyXpCurveMigration() async {
-    final stored = _prefs.getInt(_kXpCurveVersion) ?? 0;
+    final stored = _prefs.getInt(_key(_kXpCurveVersion)) ?? 0;
     if (stored >= xpCurveVersion) return false;
     final stats = readStats();
     await writeStats(
       stats.copyWith(totalXp: rescaleXp(stats.totalXp, from: stored)),
     );
-    await _prefs.setInt(_kXpCurveVersion, xpCurveVersion);
+    await _prefs.setInt(_key(_kXpCurveVersion), xpCurveVersion);
     return true;
   }
 
   DateTime? get lastSettledDate {
-    final millis = _prefs.getInt(_kSettledDate);
+    final millis = _prefs.getInt(_key(_kSettledDate));
     return millis == null ? null : DateTime.fromMillisecondsSinceEpoch(millis);
   }
 
   Future<void> writeLastSettledDate(DateTime date) =>
-      _prefs.setInt(_kSettledDate, date.millisecondsSinceEpoch);
+      _prefs.setInt(_key(_kSettledDate), date.millisecondsSinceEpoch);
 
   static int rescaleXp(int totalXp, {int from = 1}) {
     if (totalXp <= 0) return totalXp;
-    final oldNeed = xpToNextInCurve(
-      oldLevelForXp(totalXp, curve: from),
-      curve: from,
-    );
     final oldLevel = oldLevelForXp(totalXp, curve: from);
+    final oldNeed = xpToNextInCurve(oldLevel, curve: from);
     final oldBase = totalXpForLevelInCurve(oldLevel, curve: from);
     final progress = oldNeed == 0 ? 0.0 : (totalXp - oldBase) / oldNeed;
     final newLevel = (oldLevel * (_levelScaleByCurveVersion[from] ?? 1))

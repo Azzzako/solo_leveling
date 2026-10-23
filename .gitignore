@@ -50,3 +50,6 @@ app.*.map.json
 # Drift web worker build artifacts
 web/*.js.deps
 web/*.js.map
+
+# Supabase credentials (copy .env.example)
+.env

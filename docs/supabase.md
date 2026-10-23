@@ -15,25 +15,33 @@ nada se sube a la nube.
 
 ## 2. Poner las claves en la app
 
-Opción A (archivo):
-
-Edita `lib/src/core/config/supabase_config.local.dart` con la URL y la
-publishable key. La clave va en el mismo lugar que la antigua `anonKey`.
-
-La publishable key está pensada para ir dentro del cliente, pero si prefieres
-no publicarla en el repositorio, deja el archivo vacío y usa la opción B.
-
-Opción B (dart-define, para CI o builds):
+Las claves viven en un archivo `.env` en la raíz del proyecto, que **no se sube
+a git** (está en `.gitignore`). El repo es público: nunca pongas la URL ni la
+key dentro del código.
 
 ```bash
-flutter run --dart-define=SUPABASE_URL=https://xxxx.supabase.co \
-            --dart-define=SUPABASE_ANON_KEY=sb_publishable_...
-flutter build apk --dart-define=SUPABASE_URL=... \
-                  --dart-define=SUPABASE_ANON_KEY=sb_publishable_...
+cp .env.example .env    # y llena SUPABASE_URL y SUPABASE_ANON_KEY
 ```
 
-Si faltan las dos, la pantalla de login lo avisa y el botón de entrar queda
-desactivado.
+```dotenv
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_...
+```
+
+Todos los comandos que compilan la app llevan el archivo:
+
+```bash
+flutter run --dart-define-from-file=.env
+flutter build apk --dart-define-from-file=.env
+flutter build ios --dart-define-from-file=.env
+flutter build web --dart-define-from-file=.env
+```
+
+Si faltan, la pantalla de login lo avisa y el botón de entrar queda
+desactivado. La publishable key está pensada para ir dentro del cliente (no da
+acceso a datos: el progreso vive en el teléfono), pero protege el proyecto en
+Supabase: confirma el correo al registrarse o activa captcha para que nadie
+abuse de los registros.
 
 ## 3. Qué pasa con el progreso anterior
 

@@ -5,8 +5,9 @@ Supabase is used **only for identity** (email + password via GoTrue); no game
 data ever leaves the device: each account gets its own SQLite file
 (`solo_leveling_<userId>.sqlite`) and its own `SharedPreferences` keys
 (`sl_<userId>::…`). With a cached session the app works fully offline. Setup in
-`docs/supabase.md`; config via `supabase_config.local.dart` or
-`--dart-define=SUPABASE_URL=… --dart-define=SUPABASE_ANON_KEY=…`.
+`docs/supabase.md`; credentials live only in `.env` (gitignored, template in
+`.env.example`) and reach the app through `--dart-define-from-file=.env`. The
+repo is public: never commit the URL or key.
 
 ## Accounts
 
@@ -177,10 +178,12 @@ flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # after drift table changes
 flutter analyze
 flutter test
-flutter run                                        # connected device
-flutter build apk --debug                          # build/app/outputs/flutter-apk/app-debug.apk
-flutter install                                    # install on the connected phone
-flutter build web                                  # web/sqlite3.wasm + drift_worker.dart.js required, commit both
+cp .env.example .env                               # once: fill SUPABASE_URL / SUPABASE_ANON_KEY
+flutter run --dart-define-from-file=.env           # connected device
+flutter build apk --debug --dart-define-from-file=.env   # build/app/outputs/flutter-apk/app-debug.apk
+flutter install                                    # install the last build on the phone
+flutter build ios --dart-define-from-file=.env     # macOS + Xcode only
+flutter build web --dart-define-from-file=.env     # web/sqlite3.wasm + drift_worker.dart.js required, commit both
 dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart   # only if drift/sqlite3 change
 ```
 
@@ -200,7 +203,8 @@ dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart   # only i
 - Reminders are scheduled with a `Location` named `UTC` (valid for
   `NSTimeZone timeZoneWithName:`; `Etc/UTC` is not guaranteed). iOS keeps at
   most 64 pending local notifications; we use 14.
-- Building needs a Mac with Xcode: `flutter build ios`, then set the signing
+- Building needs a Mac with Xcode: `flutter build ios
+  --dart-define-from-file=.env`, then set the signing
   team in Xcode (`Runner` › Signing & Capabilities). Deployment target 15.0;
   plugins resolve through Swift Package Manager.
 

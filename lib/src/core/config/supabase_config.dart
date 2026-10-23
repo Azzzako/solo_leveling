@@ -1,19 +1,7 @@
-import 'supabase_config.local.dart';
-
 abstract final class SupabaseConfig {
-  static String get url {
-    const fromEnv = String.fromEnvironment('SUPABASE_URL');
-    return SupabaseLocalConfig.url.isNotEmpty
-        ? SupabaseLocalConfig.url
-        : fromEnv;
-  }
+  static const url = String.fromEnvironment('SUPABASE_URL');
 
-  static String get anonKey {
-    const fromEnv = String.fromEnvironment('SUPABASE_ANON_KEY');
-    return SupabaseLocalConfig.anonKey.isNotEmpty
-        ? SupabaseLocalConfig.anonKey
-        : fromEnv;
-  }
+  static const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static bool get isConfigured => url.isNotEmpty && anonKey.isNotEmpty;
 
@@ -22,6 +10,7 @@ abstract final class SupabaseConfig {
       if (url.isEmpty) 'SUPABASE_URL',
       if (anonKey.isEmpty) 'SUPABASE_ANON_KEY',
     ];
-    return 'Faltan ${missing.join(' y ')} en la configuración';
+    return 'Faltan ${missing.join(' y ')}. Compila con '
+        '--dart-define-from-file=.env';
   }
 }

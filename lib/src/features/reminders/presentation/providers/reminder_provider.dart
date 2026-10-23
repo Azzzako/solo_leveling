@@ -25,16 +25,14 @@ class ReminderSettingsController extends AsyncNotifier<ReminderSettings> {
     final settings = await ref.watch(settingsStoreProvider.future);
     return ReminderSettings(
       enabled: settings.reminderEnabled,
-      minutes: settings.reminderMinutes ?? defaultReminderMinutes,
       asked: settings.reminderAsked,
     );
   }
 
-  Future<bool> enable({int? minutes}) async {
+  Future<bool> enable() async {
     final service = ref.read(reminderServiceProvider);
-    final current = state.value ?? await future;
     final granted = await service.requestPermission();
-    await _save(enabled: granted, minutes: minutes ?? current.minutes);
+    await _save(enabled: granted);
     return granted;
   }
 
@@ -44,22 +42,12 @@ class ReminderSettingsController extends AsyncNotifier<ReminderSettings> {
     await enable();
   }
 
-  Future<void> disable() async {
-    final current = state.value ?? await future;
-    await _save(enabled: false, minutes: current.minutes);
-  }
+  Future<void> disable() => _save(enabled: false);
 
-  Future<void> setTime(int minutes) async {
-    final current = state.value ?? await future;
-    await _save(enabled: current.enabled, minutes: minutes);
-  }
-
-  Future<void> _save({required bool enabled, required int minutes}) async {
+  Future<void> _save({required bool enabled}) async {
     final settings = await ref.read(settingsStoreProvider.future);
-    await settings.writeReminder(enabled: enabled, minutes: minutes);
-    state = AsyncData(
-      ReminderSettings(enabled: enabled, minutes: minutes, asked: true),
-    );
+    await settings.writeReminder(enabled: enabled);
+    state = AsyncData(ReminderSettings(enabled: enabled, asked: true));
   }
 }
 
@@ -85,7 +73,6 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   await service.replaceAll(
     planReminders(
       now: clock(),
-      minutes: settings.minutes,
       pendingToday: today.pending,
       xpAtStakeToday: today.xp,
     ),

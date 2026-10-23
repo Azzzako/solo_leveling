@@ -149,8 +149,8 @@ void main() {
 
       await tester.tap(find.byTooltip('Recordatorio'));
       await settle();
-      expect(find.text('RECORDATORIO DIARIO'), findsOneWidget);
-      expect(find.text('8:00 p. m.'), findsOneWidget);
+      expect(find.text('RECORDATORIOS'), findsOneWidget);
+      expect(find.textContaining('11:00 p. m.'), findsOneWidget);
       await tester.tap(find.byType(Switch));
       await settle();
       expect(

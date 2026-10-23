@@ -90,21 +90,22 @@ void main() {
 
     final settings = await container.read(reminderSettingsProvider.future);
     expect(settings.enabled, isFalse);
-    expect(settings.minutes, defaultReminderMinutes);
     expect(reminders.scheduled, isEmpty);
     expect(reminders.cancels, greaterThan(0));
   });
 
-  test('al activarlo avisa hoy con lo que falta y lo actualiza', () async {
+  test('al activarlo avisa cada 4 horas con lo que falta', () async {
     await ready();
     final granted = await container
         .read(reminderSettingsProvider.notifier)
-        .enable(minutes: 21 * 60);
+        .enable();
     expect(granted, isTrue);
     await sync();
 
-    expect(reminders.scheduled, hasLength(reminderHorizonDays));
-    expect(reminders.scheduled.first.at.hour, 21);
+    final todayHours = reminders.scheduled
+        .where((r) => r.at.day == morning.day && r.at.month == morning.month)
+        .map((r) => r.at.hour);
+    expect(todayHours, [11, 15, 19, 23]);
     expect(
       reminders.scheduled.first.body,
       startsWith('Te faltan 7 misiones de hoy ($dailyStackXp XP en juego).'),
@@ -123,6 +124,35 @@ void main() {
         '(${dailyStackXp - water.xpReward} XP en juego).',
       ),
     );
+  });
+
+  test('al cumplir todo se cancelan los avisos de hoy', () async {
+    await ready();
+    await container.read(reminderSettingsProvider.notifier).enable();
+    await sync();
+    bool isToday(PlannedReminder r) =>
+        r.at.year == morning.year &&
+        r.at.month == morning.month &&
+        r.at.day == morning.day;
+    expect(reminders.scheduled.where(isToday), isNotEmpty);
+
+    final repository = container.read(missionRepositoryProvider);
+    for (final mission in await repository.dailyMissionsOn(now)) {
+      await db
+          .into(db.missionCompletions)
+          .insert(
+            MissionCompletionsCompanion.insert(
+              id: 'hecha-${mission.id}',
+              missionId: mission.id,
+              completedAt: morning,
+              xpEarned: mission.xpReward,
+            ),
+          );
+    }
+    await sync();
+
+    expect(reminders.scheduled.where(isToday), isEmpty);
+    expect(reminders.scheduled, isNotEmpty);
   });
 
   test('sin permiso queda apagado y no vuelve a preguntar solo', () async {

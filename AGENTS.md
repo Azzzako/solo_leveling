@@ -100,17 +100,21 @@ repo is public: never commit the URL or key.
   dashboard after 7 days. Any schema change must keep older backups
   restorable: bump `backupFormat` and map old rows in `BackupRepository.parse`.
   File access goes through `BackupFiles` (overridable in tests); no `dart:io`.
-- **Recordatorio** (`features/reminders/`): local notifications only
+- **Recordatorios** (`features/reminders/`): local notifications only
   (`flutter_local_notifications`, inexact alarms, no exact-alarm permission).
-  Off by default; the bell in the header opens the sheet (toggle + time, default
-  8:00 p. m.) and the first-run interview asks for permission once
+  Automatic, no time to choose: every `reminderEveryHours` (4) from
+  `reminderDayStartHour` (7:00) to `reminderDayEndHour` (23:00), i.e. 7, 11,
+  15, 19 and 23; nothing at night. Off by default; the bell in the header
+  toggles them and the first-run interview asks for permission once
   (`enableIfNeverAsked`). `reminderSyncProvider` (watched by `AppShell`)
-  replaces all scheduled notifications with `planReminders`: one per day for 14
-  days, ids `yyyymmdd`; today only if missions are pending (body shows count
-  and XP at stake), skipped when everything is done. Scheduled in UTC instants,
-  so no tz database is needed. Sign-out cancels them. Web uses
-  `NoopReminderService`; tests override `reminderServiceProvider` and
-  `reminderClockProvider`.
+  replaces all scheduled notifications with `planReminders` whenever today's
+  pending count changes: today only the slots still ahead and only while
+  missions are pending (body shows count and XP at stake; the 23:00 one is the
+  last call), plus every slot for the next days up to `reminderHorizonDays`
+  (12 → 60 pending, under iOS's 64 limit). Ids `yyyymmdd * 10 + slot`.
+  Scheduled as UTC instants, so no tz database is needed. Sign-out cancels
+  them. Web uses `NoopReminderService`; tests override `reminderServiceProvider`
+  and `reminderClockProvider`.
 - **Idioma**: all UI and catalog copy is Spanish from Mexico (celular,
   lagartijas, colación, audífonos, "platicar"); numbers use `formatNumber`
   (`10,000`), dates `formatDate` (`dd/mm/aaaa`). `MaterialApp` runs with

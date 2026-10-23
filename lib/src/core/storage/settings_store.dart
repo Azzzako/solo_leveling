@@ -41,7 +41,6 @@ class SettingsStore {
   static const _kSettledDate = 'hunter_penalty_settled_date';
   static const _kLastBackup = 'last_backup_at';
   static const _kReminderEnabled = 'reminder_enabled';
-  static const _kReminderMinutes = 'reminder_minutes';
   static const _kReminderAsked = 'reminder_asked';
 
   static Future<SettingsStore> open(String userId) async {
@@ -141,16 +140,10 @@ class SettingsStore {
 
   bool get reminderEnabled => _prefs.getBool(_key(_kReminderEnabled)) ?? false;
 
-  int? get reminderMinutes => _prefs.getInt(_key(_kReminderMinutes));
-
   bool get reminderAsked => _prefs.getBool(_key(_kReminderAsked)) ?? false;
 
-  Future<void> writeReminder({
-    required bool enabled,
-    required int minutes,
-  }) async {
+  Future<void> writeReminder({required bool enabled}) async {
     await _prefs.setBool(_key(_kReminderEnabled), enabled);
-    await _prefs.setInt(_key(_kReminderMinutes), minutes);
     await _prefs.setBool(_key(_kReminderAsked), true);
   }
 

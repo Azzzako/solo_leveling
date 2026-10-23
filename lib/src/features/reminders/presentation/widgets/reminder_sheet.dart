@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/adaptive_pickers.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/system_widgets.dart';
+import '../../domain/reminder_plan.dart';
 import '../providers/reminder_provider.dart';
 
 Future<void> showReminderSheet(BuildContext context) => showModalBottomSheet(
@@ -23,31 +24,19 @@ class _ReminderSheet extends ConsumerStatefulWidget {
 class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
   bool _denied = false;
 
+  Future<void> _toggle(bool on) async {
+    final controller = ref.read(reminderSettingsProvider.notifier);
+    if (!on) {
+      setState(() => _denied = false);
+      return controller.disable();
+    }
+    final granted = await controller.enable();
+    if (mounted) setState(() => _denied = !granted);
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(reminderSettingsProvider).value;
-    final controller = ref.read(reminderSettingsProvider.notifier);
-
-    Future<void> toggle(bool on) async {
-      if (!on) {
-        setState(() => _denied = false);
-        return controller.disable();
-      }
-      final granted = await controller.enable();
-      if (mounted) setState(() => _denied = !granted);
-    }
-
-    Future<void> chooseTime() async {
-      final current = settings;
-      if (current == null) return;
-      final picked = await pickTime(
-        context,
-        initial: TimeOfDay(hour: current.hour, minute: current.minute),
-        title: 'Hora del recordatorio',
-      );
-      if (picked == null) return;
-      await controller.setTime(picked.hour * 60 + picked.minute);
-    }
 
     return SafeArea(
       child: Padding(
@@ -56,15 +45,14 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SystemLabel(
-              'RECORDATORIO DIARIO',
-              color: AppColors.systemGlow,
-            ),
+            const SystemLabel('RECORDATORIOS', color: AppColors.systemGlow),
             const SizedBox(height: 8),
             Text(
-              'Te avisa a la hora que elijas solo si ese día te faltan '
-              'misiones. Puede llegar unos minutos tarde por el ahorro de '
-              'batería.',
+              'Te avisan cada $reminderEveryHours horas mientras te falten '
+              'misiones: $reminderScheduleLabel. De '
+              '${formatTime(reminderDayEndHour, 0)} a '
+              '${formatTime(reminderDayStartHour, 0)} no llega nada. Cuando '
+              'cumples todo, se detienen por hoy.',
               style: AppTypography.caption,
             ),
             const SizedBox(height: 8),
@@ -74,30 +62,24 @@ class _ReminderSheetState extends ConsumerState<_ReminderSheet> {
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 value: settings.enabled,
-                onChanged: toggle,
+                onChanged: _toggle,
                 title: Text('Activar', style: AppTypography.bodyStrong),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                onTap: chooseTime,
-                title: Text('Hora', style: AppTypography.bodyStrong),
-                trailing: Text(
-                  settings.timeLabel,
-                  style: AppTypography.panelTitle.copyWith(
-                    color: settings.enabled
-                        ? AppColors.systemGlow
-                        : AppColors.textMuted,
-                  ),
-                ),
               ),
               if (_denied)
                 Text(
                   'Sin permiso de notificaciones. Actívalo en los ajustes del '
-                  'teléfono para recibir el recordatorio.',
+                  'teléfono para recibir los recordatorios.',
                   style: AppTypography.caption.copyWith(
                     color: AppColors.danger,
                   ),
                 ),
+              const SizedBox(height: 4),
+              Text(
+                'Pueden llegar unos minutos tarde por el ahorro de batería.',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
             ],
           ],
         ),

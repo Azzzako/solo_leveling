@@ -1,28 +1,33 @@
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/formatters.dart';
 
-const reminderHorizonDays = 14;
+const reminderDayStartHour = 7;
 
-const defaultReminderMinutes = 20 * 60;
+const reminderDayEndHour = 23;
+
+const reminderEveryHours = 4;
+
+const reminderHorizonDays = 12;
 
 const reminderTitle = 'Sistema · misiones pendientes';
 
+final reminderHours = List<int>.unmodifiable([
+  for (
+    var hour = reminderDayStartHour;
+    hour <= reminderDayEndHour;
+    hour += reminderEveryHours
+  )
+    hour,
+]);
+
+String get reminderScheduleLabel =>
+    reminderHours.map((hour) => formatTime(hour, 0)).join(', ');
+
 class ReminderSettings {
-  const ReminderSettings({
-    required this.enabled,
-    required this.minutes,
-    required this.asked,
-  });
+  const ReminderSettings({required this.enabled, required this.asked});
 
   final bool enabled;
-  final int minutes;
   final bool asked;
-
-  int get hour => minutes ~/ 60;
-
-  int get minute => minutes % 60;
-
-  String get timeLabel => formatTime(hour, minute);
 }
 
 class PlannedReminder {
@@ -39,11 +44,11 @@ class PlannedReminder {
   final String body;
 }
 
-int reminderIdFor(DateTime day) => day.year * 10000 + day.month * 100 + day.day;
+int reminderIdFor(DateTime day, int slot) =>
+    (day.year * 10000 + day.month * 100 + day.day) * 10 + slot;
 
 List<PlannedReminder> planReminders({
   required DateTime now,
-  required int minutes,
   required int pendingToday,
   required int xpAtStakeToday,
   int days = reminderHorizonDays,
@@ -51,46 +56,41 @@ List<PlannedReminder> planReminders({
   final today = dateOnly(now);
   final reminders = <PlannedReminder>[];
   for (var offset = 0; offset < days; offset++) {
-    final reminder = _reminderFor(
-      day: DateTime(today.year, today.month, today.day + offset),
-      minutes: minutes,
-      now: now,
-      isToday: offset == 0,
-      pendingToday: pendingToday,
-      xpAtStakeToday: xpAtStakeToday,
-    );
-    if (reminder != null) reminders.add(reminder);
+    final isToday = offset == 0;
+    if (isToday && pendingToday <= 0) continue;
+    final day = DateTime(today.year, today.month, today.day + offset);
+    for (var slot = 0; slot < reminderHours.length; slot++) {
+      final at = DateTime(day.year, day.month, day.day, reminderHours[slot]);
+      if (!at.isAfter(now)) continue;
+      reminders.add(
+        PlannedReminder(
+          id: reminderIdFor(day, slot),
+          at: at,
+          title: reminderTitle,
+          body: _body(
+            isToday: isToday,
+            isLast: slot == reminderHours.length - 1,
+            pending: pendingToday,
+            xp: xpAtStakeToday,
+          ),
+        ),
+      );
+    }
   }
   return reminders;
 }
 
-PlannedReminder? _reminderFor({
-  required DateTime day,
-  required int minutes,
-  required DateTime now,
+String _body({
   required bool isToday,
-  required int pendingToday,
-  required int xpAtStakeToday,
+  required bool isLast,
+  required int pending,
+  required int xp,
 }) {
-  final at = DateTime(
-    day.year,
-    day.month,
-    day.day,
-    minutes ~/ 60,
-    minutes % 60,
-  );
-  if (!at.isAfter(now)) return null;
-  if (isToday && pendingToday <= 0) return null;
-  return PlannedReminder(
-    id: reminderIdFor(day),
-    at: at,
-    title: reminderTitle,
-    body: isToday
-        ? 'Te ${pendingToday == 1 ? 'falta' : 'faltan'} '
-              '${pluralize(pendingToday, 'misión', 'misiones')} de hoy '
-              '(${formatNumber(xpAtStakeToday)} XP en juego). Lo que no '
-              'cumplas se cobra como castigo.'
-        : 'Revisa tus misiones de hoy. Lo que no cumplas se cobra como '
-              'castigo.',
-  );
+  final closing = isLast
+      ? 'Última llamada: lo que no cumplas antes de medianoche se cobra.'
+      : 'Lo que no cumplas se cobra como castigo.';
+  if (!isToday) return 'Revisa tus misiones de hoy. $closing';
+  return 'Te ${pending == 1 ? 'falta' : 'faltan'} '
+      '${pluralize(pending, 'misión', 'misiones')} de hoy '
+      '(${formatNumber(xp)} XP en juego). $closing';
 }

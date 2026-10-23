@@ -28,10 +28,12 @@ class DailySummary {
     required this.total,
     required this.completed,
     required this.xp,
+    this.pendingXp = 0,
   });
   final int total;
   final int completed;
   final int xp;
+  final int pendingXp;
   double get progress => total == 0 ? 0 : completed / total;
   int get remaining => total - completed;
   static DailySummary from(
@@ -39,10 +41,12 @@ class DailySummary {
     List<MissionCompletion> done,
   ) {
     final completedIds = {for (final c in done) c.missionId};
+    final pending = missions.where((m) => !completedIds.contains(m.id));
     return DailySummary(
       total: missions.length,
-      completed: missions.where((m) => completedIds.contains(m.id)).length,
+      completed: missions.length - pending.length,
       xp: done.fold(0, (sum, c) => sum + c.xpEarned),
+      pendingXp: pending.fold(0, (sum, m) => sum + m.xpReward),
     );
   }
 }

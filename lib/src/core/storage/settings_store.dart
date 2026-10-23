@@ -40,6 +40,9 @@ class SettingsStore {
   static const _kMissionSeed = 'daily_missions_seed_date';
   static const _kSettledDate = 'hunter_penalty_settled_date';
   static const _kLastBackup = 'last_backup_at';
+  static const _kReminderEnabled = 'reminder_enabled';
+  static const _kReminderMinutes = 'reminder_minutes';
+  static const _kReminderAsked = 'reminder_asked';
 
   static Future<SettingsStore> open(String userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -135,6 +138,21 @@ class SettingsStore {
 
   Future<void> writeLastBackupAt(DateTime at) =>
       _prefs.setInt(_key(_kLastBackup), at.millisecondsSinceEpoch);
+
+  bool get reminderEnabled => _prefs.getBool(_key(_kReminderEnabled)) ?? false;
+
+  int? get reminderMinutes => _prefs.getInt(_key(_kReminderMinutes));
+
+  bool get reminderAsked => _prefs.getBool(_key(_kReminderAsked)) ?? false;
+
+  Future<void> writeReminder({
+    required bool enabled,
+    required int minutes,
+  }) async {
+    await _prefs.setBool(_key(_kReminderEnabled), enabled);
+    await _prefs.setInt(_key(_kReminderMinutes), minutes);
+    await _prefs.setBool(_key(_kReminderAsked), true);
+  }
 
   Map<String, Object?> exportPlayer() {
     final stats = readStats();

@@ -9,6 +9,8 @@ import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/goals/presentation/screens/goals_screen.dart';
 import '../../features/missions/presentation/providers/interview_provider.dart';
 import '../../features/missions/presentation/screens/missions_screen.dart';
+import '../../features/reminders/presentation/providers/reminder_provider.dart';
+import '../../features/reminders/presentation/widgets/reminder_sheet.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 
@@ -19,6 +21,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(reminderSyncProvider);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -64,6 +67,8 @@ class _SystemHeader extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final email = auth.value?.email ?? '';
     final label = email.isEmpty ? 'SOLO LEVELING' : email;
+    final reminderOn =
+        ref.watch(reminderSettingsProvider).value?.enabled ?? false;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
@@ -112,6 +117,18 @@ class _SystemHeader extends ConsumerWidget {
             icon: const Icon(Icons.save_alt),
             onPressed: () => context.push(AppRoutes.backup),
           ),
+          IconButton(
+            tooltip: 'Recordatorio',
+            iconSize: 18,
+            visualDensity: VisualDensity.compact,
+            color: reminderOn ? AppColors.systemGlow : AppColors.textMuted,
+            icon: Icon(
+              reminderOn
+                  ? Icons.notifications_active_outlined
+                  : Icons.notifications_none,
+            ),
+            onPressed: () => showReminderSheet(context),
+          ),
           Tooltip(
             message: 'Cerrar sesión',
             child: IconButton(
@@ -156,6 +173,7 @@ class _SystemHeader extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    await ref.read(reminderServiceProvider).cancelAll();
     await ref.read(authProvider.notifier).signOut();
   }
 }

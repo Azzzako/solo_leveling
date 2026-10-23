@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gotrue/gotrue.dart';
 
@@ -64,103 +65,114 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 28),
                   SystemPanel(
                     glow: true,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SystemLabel(
-                          _registering ? 'NUEVA CUENTA' : 'ACCESO',
-                          color: AppColors.systemGlow,
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _email,
-                          enabled: !loading,
-                          keyboardType: TextInputType.emailAddress,
-                          autocorrect: false,
-                          decoration: const InputDecoration(
-                            labelText: 'Correo',
-                            hintText: 'cazador@correo.com',
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SystemLabel(
+                            _registering ? 'NUEVA CUENTA' : 'ACCESO',
+                            color: AppColors.systemGlow,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _password,
-                          enabled: !loading,
-                          obscureText: _obscure,
-                          decoration: InputDecoration(
-                            labelText: 'Contraseña',
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                size: 18,
-                                color: AppColors.textMuted,
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _email,
+                            enabled: !loading,
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: const InputDecoration(
+                              labelText: 'Correo',
+                              hintText: 'cazador@correo.com',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _password,
+                            enabled: !loading,
+                            obscureText: _obscure,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) => _submit(),
+                            autofillHints: [
+                              _registering
+                                  ? AutofillHints.newPassword
+                                  : AutofillHints.password,
+                            ],
+                            decoration: InputDecoration(
+                              labelText: 'Contraseña',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
                               ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
                             ),
                           ),
-                        ),
-                        if (auth.hasError) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _errorText(auth.error),
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.danger,
+                          if (auth.hasError) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              _errorText(auth.error),
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ],
+                          if (!SupabaseConfig.isConfigured) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              SupabaseConfig.missingFieldsMessage,
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.gold,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                          FilledButton(
+                            onPressed: loading || !SupabaseConfig.isConfigured
+                                ? null
+                                : _submit,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.systemBlue,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: loading
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.black,
+                                    ),
+                                  )
+                                : Text(
+                                    _registering ? 'CREAR CUENTA' : 'ENTRAR',
+                                    style: AppTypography.panelTitle.copyWith(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: loading
+                                ? null
+                                : () => setState(
+                                    () => _registering = !_registering,
+                                  ),
+                            child: Text(
+                              _registering
+                                  ? 'Ya tengo cuenta'
+                                  : 'Crear una cuenta nueva',
+                              style: AppTypography.caption,
                             ),
                           ),
                         ],
-                        if (!SupabaseConfig.isConfigured) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            SupabaseConfig.missingFieldsMessage,
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.gold,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: loading || !SupabaseConfig.isConfigured
-                              ? null
-                              : _submit,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.systemBlue,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: loading
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.black,
-                                  ),
-                                )
-                              : Text(
-                                  _registering ? 'CREAR CUENTA' : 'ENTRAR',
-                                  style: AppTypography.panelTitle.copyWith(
-                                    color: Colors.black,
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: loading
-                              ? null
-                              : () => setState(
-                                  () => _registering = !_registering,
-                                ),
-                          child: Text(
-                            _registering
-                                ? 'Ya tengo cuenta'
-                                : 'Crear una cuenta nueva',
-                            style: AppTypography.caption,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -206,7 +218,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) return;
+    if (!SupabaseConfig.isConfigured || ref.read(authProvider).isLoading) {
+      return;
+    }
 
+    TextInput.finishAutofillContext();
     final controller = ref.read(authProvider.notifier);
     if (_registering) {
       await controller.signUp(email: email, password: password);

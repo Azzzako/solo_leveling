@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/system_widgets.dart';
+import '../../../reminders/presentation/providers/reminder_provider.dart';
 import '../../domain/interview_catalog.dart';
 import '../providers/interview_provider.dart';
 
@@ -24,7 +25,9 @@ class _InterviewScreenState extends ConsumerState<InterviewScreen> {
     if (_saving) return;
     setState(() => _saving = true);
     try {
+      final reminders = ref.read(reminderSettingsProvider.notifier);
       await action();
+      if (!widget.reconfigure) await reminders.enableIfNeverAsked();
       if (mounted && widget.reconfigure && context.canPop()) context.pop();
     } finally {
       if (mounted) setState(() => _saving = false);

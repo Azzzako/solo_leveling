@@ -99,16 +99,30 @@ data ever leaves the device: each account gets its own SQLite file
   dashboard after 7 days. Any schema change must keep older backups
   restorable: bump `backupFormat` and map old rows in `BackupRepository.parse`.
   File access goes through `BackupFiles` (overridable in tests); no `dart:io`.
+- **Recordatorio** (`features/reminders/`): local notifications only
+  (`flutter_local_notifications`, inexact alarms, no exact-alarm permission).
+  Off by default; the bell in the header opens the sheet (toggle + time, default
+  8:00 p. m.) and the first-run interview asks for permission once
+  (`enableIfNeverAsked`). `reminderSyncProvider` (watched by `AppShell`)
+  replaces all scheduled notifications with `planReminders`: one per day for 14
+  days, ids `yyyymmdd`; today only if missions are pending (body shows count
+  and XP at stake), skipped when everything is done. Scheduled in UTC instants,
+  so no tz database is needed. Sign-out cancels them. Web uses
+  `NoopReminderService`; tests override `reminderServiceProvider` and
+  `reminderClockProvider`.
 - **Idioma**: all UI and catalog copy is Spanish from Mexico (celular,
   lagartijas, colación, audífonos, "platicar"); numbers use `formatNumber`
   (`10,000`), dates `formatDate` (`dd/mm/aaaa`). `MaterialApp` runs with
-  `Locale('es', 'MX')` and `GlobalMaterialLocalizations`.
+  `Locale('es', 'MX')` and `MexicoMaterialLocalizations` (`app/`): Flutter's
+  `es_MX` strings but 12-hour clock with "a. m." / "p. m." (Flutter defaults
+  Spanish to 24 h, which hid the AM/PM toggle in the time picker).
 
 ## Stack
 
 Flutter 3.47 / Dart 3.13 · Riverpod 3 · go_router (`StatefulShellRoute`) ·
 Drift (SQLite) · SharedPreferences (player settings) · flutter_animate ·
-file_picker (backup files) · bundled fonts (Orbitron display, Rajdhani body).
+file_picker (backup files) · flutter_local_notifications + timezone
+(reminders; Android needs core library desugaring) · bundled fonts (Orbitron display, Rajdhani body).
 
 ## Layout
 
@@ -169,6 +183,26 @@ flutter install                                    # install on the connected ph
 flutter build web                                  # web/sqlite3.wasm + drift_worker.dart.js required, commit both
 dart compile js -O4 -o web/drift_worker.dart.js web/drift_worker.dart   # only if drift/sqlite3 change
 ```
+
+## iOS
+
+- Same code as Android; platform differences live behind
+  `Theme.of(context).platform` (no `dart:io`). `core/widgets/adaptive_pickers.dart`
+  shows Cupertino wheels on iOS (`pickTime`, `pickDate`) and Material dialogs
+  elsewhere; switches use `.adaptive`. Dialogs keep the HUD Material style.
+- `MexicoCupertinoLocalizations` mirrors the Material one ("a. m."/"p. m.").
+- `Info.plist`: `CFBundleDevelopmentRegion` `es-MX` + `CFBundleLocalizations`
+  (`es`, `es-MX`) so system sheets (file picker, permission prompts) show in
+  Spanish; `ITSAppUsesNonExemptEncryption` false (HTTPS only).
+- `AppDelegate.swift` sets `UNUserNotificationCenter.current().delegate` so
+  reminders show while the app is open. Notification permission is requested
+  through `IOSFlutterLocalNotificationsPlugin.requestPermissions`.
+- Reminders are scheduled with a `Location` named `UTC` (valid for
+  `NSTimeZone timeZoneWithName:`; `Etc/UTC` is not guaranteed). iOS keeps at
+  most 64 pending local notifications; we use 14.
+- Building needs a Mac with Xcode: `flutter build ios`, then set the signing
+  team in Xcode (`Runner` › Signing & Capabilities). Deployment target 15.0;
+  plugins resolve through Swift Package Manager.
 
 ## Data safety
 

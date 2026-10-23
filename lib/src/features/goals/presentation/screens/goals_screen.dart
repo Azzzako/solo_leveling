@@ -6,6 +6,7 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/db/app_database.dart';
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/adaptive_pickers.dart';
 import '../../../../core/widgets/feedback.dart';
 import '../../../../core/widgets/system_widgets.dart';
 import '../../domain/goal_rules.dart';
@@ -323,12 +324,12 @@ class _GoalFormState extends State<_GoalForm> {
 
   Future<void> _pickDeadline() async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _deadline ?? now.add(const Duration(days: 30)),
-      firstDate: now,
-      lastDate: DateTime(now.year + 5),
-      helpText: 'Fecha límite',
+    final picked = await pickDate(
+      context,
+      initial: _deadline ?? now.add(const Duration(days: 30)),
+      first: now,
+      last: DateTime(now.year + 5, 12, 31),
+      title: 'Fecha límite',
     );
     if (picked != null) setState(() => _deadline = picked);
   }

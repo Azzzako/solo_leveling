@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers/core_providers.dart';
+import 'mexico_localizations.dart';
 import 'router.dart';
 import 'theme/app_theme.dart';
-
-const appLocale = Locale('es', 'MX');
 
 class SoloLevelingApp extends ConsumerStatefulWidget {
   const SoloLevelingApp({super.key});
@@ -42,7 +40,7 @@ class _SoloLevelingAppState extends ConsumerState<SoloLevelingApp> {
       darkTheme: AppTheme.dark,
       locale: appLocale,
       supportedLocales: const [appLocale],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      localizationsDelegates: MexicoMaterialLocalizations.delegates,
       routerConfig: router,
     );
   }
